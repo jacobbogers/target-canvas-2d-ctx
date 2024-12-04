@@ -2,6 +2,11 @@
 
 https://html.spec.whatwg.org/multipage/canvas.html
 
+| namespace | function-name | return | arg1   | arg2    | arg3 | arg 4 |  namespace type id | function type Id |
+|-----------|---------------|--------|--------|---------|------|-------|--------------------|-------------------
+| canvas    | toDataURL     | string | string | *string | x    | x     |    0x0a            |  01              |
+
+
 ## canvas
 
 ### Types for HTMLCanvasElement
