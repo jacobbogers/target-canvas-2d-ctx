@@ -2,11 +2,12 @@
 
 base types
 
-- string (includes nr of lengthbytes)
-- int32
-- float32
-- boolean
-- ubyte  (includes nr of length)
+- string (includes nr of lengthbytes)  0x10-0x1f   so nr lengthbytes is bewteen 0 to  pow(2,15*8) -1, extremely long pow(2, 15*8) = 1.329227995784916e+36
+- int16  0x20
+- int32  0x30
+- float32   0x40
+- boolean  0x50
+- ubyte  (includes nr of length)   0x60-0x5f so nr lengthbytes is bewteen 0 to  pow(2,15*8) -1, extremely long  pow(2, 15*8) = 1.329227995784916e+36
 
 https://html.spec.whatwg.org/multipage/canvas.html
 
