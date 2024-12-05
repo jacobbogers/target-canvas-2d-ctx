@@ -1,11 +1,30 @@
 # RenderPipeline
 
+base types
+
+- string (includes nr of lengthbytes)
+- int32
+- float32
+- boolean
+- ubyte  (includes nr of length)
+
 https://html.spec.whatwg.org/multipage/canvas.html
 
-| namespace | function-name | return | arg1   | arg2    | arg3 | arg 4 |  namespace type id | function type Id |
-|-----------|---------------|--------|--------|---------|------|-------|--------------------|-------------------
-| canvas    | toDataURL     | string | string | *string | x    | x     |    0x0a            |  01              |
+| namespace | name                             | type         | return | arg1   | arg2                              | arg3 | arg 4 | namespace type id | function type Id |
+|-----------|----------------------------------|--------------|--------|--------|-----------------------------------|------|-------|-------------------|------------------|
+| canvas    | toDataURL                        | fun          | string | string | *string                           | x    | x     | 0x0a              | 01               |
+| canvas    | toBlob                           | fun          | N/A    | N/A    | N/A                               | N/A  | N/A   | N/A               | N/A              |
+| canvas    | getContext                       | fun          | N/A    | string | *CanvasRenderingContext2DSettings |      |       |                   | 03               |
+| canvas    | length                           | prop get/set | number | number |                                   |      |       |                   | 40               |
+| canvas    | width                            | prop get/set | number | number |                                   |      |       |                   | 41               |
+| canvas    | CanvasRenderingContext2DSettings | struct       | N/A    | N/A    | N/A                               | N/A  | N/A   | N/A               | 80               |
 
+dictionary CanvasRenderingContext2DSettings {
+  boolean alpha = true;
+  boolean desynchronized = false;
+  PredefinedColorSpace colorSpace = "srgb";
+  boolean willReadFrequently = false;
+};
 
 ## canvas
 
