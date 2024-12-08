@@ -2,23 +2,31 @@
 
 base types
 
-- string (includes nr of lengthbytes)  0x10-0x1f   so nr lengthbytes is bewteen 0 to  pow(2,15*8) -1, extremely long pow(2, 15*8) = 1.329227995784916e+36
-- int16  0x20
-- int32  0x30
-- float32   0x40
-- boolean  0x50
-- ubyte  (includes nr of length)   0x60-0x5f so nr lengthbytes is bewteen 0 to  pow(2,15*8) -1, extremely long  pow(2, 15*8) = 1.329227995784916e+36
+- string 0x10 (0 last nummble means empty string) (includes nr of lengthbytes)  0x11-0x14   so nr lengthbytes is bewteen 1 to 4 bytes (max size 4.3 Gig)
+- int8 0x21
+- int16  0x22
+- int32  0x24
+- int64  0x28
+- intBool 0x30  0x30 = false, 0x31 = true
+- float32   0x44
+- float64   0x48
+- skip 0x50 (optional value omitted)  
+- ubyte  0x60 = zero length ubyte  (includes nr of length)   0x61-0x64   so nr lengthbytes is bewteen 1 to 4 bytes (max size 4.3 Gig)
+
+- object 0x80 first nibble is the structure type, second nimbble is the unique index within the context of the namespace
 
 https://html.spec.whatwg.org/multipage/canvas.html
 
-| namespace | name                             | type         | return | arg1   | arg2                              | arg3 | arg 4 | namespace type id | function type Id |
-|-----------|----------------------------------|--------------|--------|--------|-----------------------------------|------|-------|-------------------|------------------|
-| canvas    | toDataURL                        | fun          | string | string | *string                           | x    | x     | 0x0a              | 01               |
-| canvas    | toBlob                           | fun          | N/A    | N/A    | N/A                               | N/A  | N/A   | N/A               | N/A              |
-| canvas    | getContext                       | fun          | N/A    | string | *CanvasRenderingContext2DSettings |      |       |                   | 03               |
-| canvas    | length                           | prop get/set | number | number |                                   |      |       |                   | 40               |
-| canvas    | width                            | prop get/set | number | number |                                   |      |       |                   | 41               |
-| canvas    | CanvasRenderingContext2DSettings | struct       | N/A    | N/A    | N/A                               | N/A  | N/A   | N/A               | 80               |
+| namespace | name                             | type         | return | arg1   | arg2                              | arg3 | arg 4 | namespace type id | type Id   |
+| --------- | -------------------------------- | ------------ | ------ | ------ | --------------------------------- | ---- | ----- | ----------------- | --------- |
+| canvas    | toDataURL                        | fun          | string | string | *string                           | x    | x     | 0x0a              | 10        |
+| canvas    | toBlob                           | fun          | N/A    | N/A    | N/A                               | N/A  | N/A   | N/A               | N/A       |
+| canvas    | getContext                       | fun          | N/A    | string | *CanvasRenderingContext2DSettings |      |       |                   | 20        |
+| canvas    | length                           | prop get/set | number | number |                                   |      |       |                   | 31/32/33  |
+| canvas    | width                            | prop get/set | number | number |                                   |      |       |                   | 40/41     |
+| canvas    | CanvasRenderingContext2DSettings | struct       | N/A    | N/A    | N/A                               | N/A  | N/A   | N/A               | 80/81/.01 |
+
+The unqiueness of an object is determined its "type" path explicit or contextual    <namespace><x80><specific structure index tag> 
 
 dictionary CanvasRenderingContext2DSettings {
   boolean alpha = true;
