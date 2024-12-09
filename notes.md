@@ -1,7 +1,7 @@
 # RenderPipeline
 
 base types
-
+- null 0x00
 - string 0x10 (0 last nummble means empty string) (includes nr of lengthbytes)  0x11-0x14   so nr lengthbytes is bewteen 1 to 4 bytes (max size 4.3 Gig)
 - int8 0x21
 - int16  0x22
@@ -72,15 +72,7 @@ var dataUrl = canvas.toDataURL('image/webp');
 ```typescript
 [Exposed=Window]
 interface HTMLCanvasElement : HTMLElement {
-  [HTMLConstructor] constructor();
-
-  [CEReactions] attribute unsigned long width;   // read and set
-  [CEReactions] attribute unsigned long height; // read and set
-
-  RenderingContext? getContext(DOMString contextId, optional any options = null); // only "2d" is supported for now
-  // "SecurityError" is created like so "new DOMException(DOMException.SECURITY_ERR)"
-  // can throw "SecurityError" if "origin-clean" is set to false
-  USVString toDataURL(optional DOMString type = "image/png", optional any quality);
+  [HTMLConstructor] constructor();ç, optional any quality);
 
   // toBlob can throw "SecurityError" if the "origin-clean" is set to false
   undefined toBlob(BlobCallback _callback, optional DOMString type = "image/png", optional any quality); // null will be passed to the callback if the blob cannot created for some reason

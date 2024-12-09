@@ -1,9 +1,9 @@
 
-import { getFloat32Or64Bit, getInt, getString, setInt32 } from './helpers';
+import { getBool, getFloat32Or64Bit, getInt, getString, setInt32 } from './helpers';
 
 export default class TargetCanvas {
     #canvas: HTMLCanvasElement;
-    #ctx: CanvasRenderingContext2DSettings;
+    #ctx: CanvasRenderingContext2D;
 
     constructor(canvas: HTMLCanvasElement) {
         this.#canvas = canvas;
@@ -63,24 +63,40 @@ export default class TargetCanvas {
             return; // abort
         }
         const str = getString(dataForGet, offsetForSet);
+        if (str !== "2d") {
+            return;
+        }
         let cursor = offsetForSet + (stringType & 0x0f) + 1 + (getInt(dataForSet, offsetForSet + 1) as number);
+        let ctxSettings: CanvasRenderingContext2DSettings | undefined = undefined;
         // is there an optional second argument? then process
         {
-            const  type = dataForGet[cursor];
-            if ((type >> 4) === 5) { // skip
-                advance.offsetForArguments += 1;
-                cursor 
+            const  type = offsetForSet[cursor];
+            if ((type >> 4) === 5) { // skip, there is no optional second argument
+                advance.offsetForArguments += 1;    
             }
-            if (type === 0x80) {
-                const type = dataForGet[cursor]
+            else if (type === 0x80 && offsetForSet[cursor + 1] === 1) { // is CanvasRenderingContext2DSettings?
+                // get boolean "alpha"
+                const alpha = getBool(dataForSet, cursor);
+                const desynchronized = getBool(dataForSet, cursor + 1);
+                const colorSpace = getString(dataForSet, cursor + 2) as PredefinedColorSpace;
+                advance.offsetForReturnArguments += (dataForSet[cursor + 2] & 0x0f) + 1 + (getInt(dataForSet, cursor + 2) as number);
+                const willReadFrequently = getBool(dataForSet, cursor + 3);
+                advance.offsetForReturnArguments += 3 /* for booleans */;
+                ctxSettings = { alpha, desynchronized, colorSpace, willReadFrequently}
             }
         }
+        const ctx = this.#canvas.getContext(str, ctxSettings);
+        if (ctx === null) {
+            dataForGet[offsetForGet] = 0x00;
+            advance.offsetForReturnArguments += 1;
+            return;
+        }
+        this.#ctx = ctx;
+
+    }
+
+    toDataURL(dataForSet: Uint8Array, offsetForSet: number, dataForGet: Uint8Array, offsetForGet : number, advance: Advance) {
         
-        advance.offsetForArguments += cursor;
-        const ctx = this.#canvas.getContext(str);
-        dataForGet[offsetForGet] = 0x80;
-        dataForGet[offsetForGet+1] = 0x01;
-        dataForGet[offsetForGet+1] = ctx.alpha ? 0x31 : 0x30;
     }
 
 }
