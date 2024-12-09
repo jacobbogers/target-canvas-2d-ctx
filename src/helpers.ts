@@ -70,23 +70,11 @@ export function getInt(data: Uint8Array, offset: number): number | bigint  {
     return 0;
 }
 
-export function setInt(data: Uint8Array, offset: number): number | bigint  {
-    // we already know the high nibble of data[ofst] is 0x2
-    switch(data[offset] & 0xf) {
-        case 8:
-            const high = BigInt(littleEndian2Int(data, offset + 1 + 4, 4)) << 32n;
-            const low =  BigInt(littleEndian2Int(data, offset + 1 , 4));
-            return high + low; 
-        case 4:
-            return littleEndian2Int(data, offset + 1, 4);
-        case 2:
-            return littleEndian2Int(data, offset + 1, 2);
-        case 1:
-            return  littleEndian2Int(data, offset + 1, 2);
-        case 0:
-        default:
-              
-    }
-    return 0;
+export function setInt32(value: number, data: Uint8Array, offset: number): number {
+    data[offset] = 0x24; // int32 data type marker
+    data[offset + 1] = value & 0xff;
+    data[offset + 2] = (value >> 8 ) & 0xff;
+    data[offset + 3] = (value >> 16 ) & 0xff;
+    data[offset + 4] = (value >> 24 ) & 0xff;
+    return 5;
 }
-
