@@ -1,4 +1,4 @@
-type Advance = {
+export type Advance = {
     offsetForArguments: number;
     offsetForReturnArguments: number;
 }

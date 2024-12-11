@@ -1,5 +1,6 @@
 
 import { getBool, getFloat32Or64Bit, getInt, getString, setInt32 } from './helpers';
+import { Advance } from './types';
 
 export default class TargetCanvas {
     #canvas: HTMLCanvasElement;
@@ -95,7 +96,7 @@ export default class TargetCanvas {
 
     }
 
-    toDataURL(dataForSet: Uint8Array, offsetForSet: number, dataForGet: Uint8Array, offsetForGet : number, advance: Advance) {
+    toDataURL(dataForSet: Uint8Array, offsetForSet: number, dataForGet: Uint8Array, offsetForGet : number, numBytesGet: number, advance: Advance) {
         
     }
 
