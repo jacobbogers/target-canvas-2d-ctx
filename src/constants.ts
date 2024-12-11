@@ -11,3 +11,5 @@ export const decoderMap = {
     // '5': skip , this value is blessed 
     '6': getUint8Array,
 };
+
+export const baseUrlMatcher = /^data\:image\/(?<type>webp)[,;]+(?<imgData>.*)$/;
