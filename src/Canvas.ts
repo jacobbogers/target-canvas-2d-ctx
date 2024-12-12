@@ -1,9 +1,8 @@
 
 import { byteLength, toByteArray } from './base64';
 import { baseUrlMatcher } from './constants';
-import { getBool, getFloat32Or64Bit, getInt, getString, setInt32 } from './helpers';
-import { Advance } from './types';
-
+import { getBool, getFloat32Or64Bit, getInt, getString, setInt32, setLength } from './helpers';
+import type { Advance } from './types';
 export default class TargetCanvas {
     #canvas: HTMLCanvasElement;
     #ctx: CanvasRenderingContext2D;
@@ -31,8 +30,7 @@ export default class TargetCanvas {
             }
         }
         if (cmd & 0x01) { // getter
-            let width = this.#canvas.width;
-            advance.offsetForReturnArguments += setInt32(width, dataForGet, offsetForGet);
+            advance.offsetForReturnArguments += setInt32(this.#canvas.width, dataForGet, offsetForGet);
         }
     }
 
@@ -55,8 +53,7 @@ export default class TargetCanvas {
             }
         }
         if (cmd & 0x01) { // getter
-            let height = this.#canvas.height;
-            advance.offsetForReturnArguments += setInt32(height, dataForGet, offsetForGet); // return the advance cursor 5 bytes
+            advance.offsetForReturnArguments += setInt32(this.#canvas.height, dataForGet, offsetForGet); // return the advance cursor 5 bytes
         }
     }
 
@@ -70,7 +67,7 @@ export default class TargetCanvas {
             return;
         }
         const strFootPrint = + (stringType & 0x0f) + 1 + (getInt(dataForSet, offsetForSet + 1) as number);
-        let cursor = offsetForSet + strFootPrint;
+        const cursor = offsetForSet + strFootPrint;
         advance.offsetForArguments += strFootPrint;
         let ctxSettings: CanvasRenderingContext2DSettings | undefined = undefined;
         // is there an optional second argument? then process
@@ -144,14 +141,21 @@ export default class TargetCanvas {
         }
         // baseDecode64 and return
         const len = byteLength(matches.groups.imgData);
+        const numBytes = Math.ceil(Math.ceil(Math.log2(len)) / 8);
+        if (numBytes > 4) {
+
+            // cannot fit in max WebAssembly Memory
+            return;
+        }
         if (len > numBytesGet) {
             // give back alternative structure
             return;
 
         }
         const ubytes = toByteArray(matches.groups.imgData);
-        // encode it in return structure
-
+        const skip = setLength(ubytes.length, dataForGet, offsetForGet)
+        dataForGet.set(ubytes, offsetForGet + skip)
+        advance.offsetForReturnArguments += skip + ubytes.length;
     }
 
 }
