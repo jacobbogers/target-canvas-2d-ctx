@@ -7,24 +7,46 @@
 	},
 	"files": {
 		"ignoreUnknown": false,
-		"ignore": []
+		"ignore": [],
+		"include": [
+			"tsconfig.json",
+			"vitest.config.ts",
+			"src/**/*.ts",
+			"test/**/*.ts"
+		]
 	},
 	"formatter": {
 		"enabled": true,
 		"indentStyle": "tab"
 	},
 	"organizeImports": {
-		"enabled": true
+		"enabled": false
 	},
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"recommended": true
+			"recommended": true,
+			"correctness": {
+				"noUnusedImports": "error"
+			},
+			"style": {
+				"useNamingConvention": {
+					"level": "error",
+					"options": {
+						"strictCase": false
+					}
+				}
+			}
 		}
 	},
 	"javascript": {
 		"formatter": {
-			"quoteStyle": "double"
+			"quoteStyle": "single"
+		}
+	},
+	"json": {
+		"formatter": {
+			"enabled": true
 		}
 	}
 }

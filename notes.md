@@ -1,11 +1,14 @@
 # RenderPipeline
 
 base types
-- null 0x00
+- null 0x00 
+- null + payload 0x01  
 - string 0x10 (0 last nummble means empty string) (includes nr of lengthbytes)  0x11-0x14   so nr lengthbytes is bewteen 1 to 4 bytes (max size 4.3 Gig)
 - int8 0x21
 - int16  0x22
+- int24  0x23
 - int32  0x24
+- inty  0x2..(y/8)
 - int64  0x28
 - intBool 0x30  0x30 = false, 0x31 = true
 - float32   0x44
