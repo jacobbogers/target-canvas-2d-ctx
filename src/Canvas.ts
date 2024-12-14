@@ -3,9 +3,8 @@ import { baseUrlMatcher } from './constants';
 import {
 	getBool,
 	getFloat32Or64Bit,
-	getInt,
+	getLength,
 	getString,
-	setInt32,
 	setLength,
 } from './helpers';
 import type { Advance } from './types';
@@ -34,7 +33,7 @@ export default class TargetCanvas {
 			advance.offsetForArguments += type & (0x0f + 1);
 			let width: number | undefined = undefined;
 			if (type >= 21 && type <= 24) {
-				width = getInt(dataForSet, offsetForSet + 1) as number;
+				width = getLength(dataForSet, offsetForSet + 1) as number;
 			}
 			if (type >= 44 && type <= 48) {
 				width = getFloat32Or64Bit(dataForSet, offsetForSet + 1);
@@ -45,7 +44,7 @@ export default class TargetCanvas {
 		}
 		if (cmd & 0x01) {
 			// getter
-			advance.offsetForReturnArguments += setInt32(
+			advance.offsetForReturnArguments += setLength(
 				this.#canvas.width,
 				dataForGet,
 				offsetForGet,
@@ -66,12 +65,12 @@ export default class TargetCanvas {
 			// setter
 			// there is an argument
 			const type = dataForSet[offsetForSet + 1];
-			advance.offsetForArguments += type & (0x0f + 1);
+			advance.offsetForArguments += (type & 0x0f) + 1;
 			let height: number | undefined = undefined;
-			if (type >= 21 && type <= 24) {
-				height = getInt(dataForSet, offsetForSet + 1) as number;
+			if (type >= 0x21 && type <= 0x28) {
+				height = getLength(dataForSet, offsetForSet + 1) as number;
 			}
-			if (type >= 44 && type <= 48) {
+			if (type >= 0x44 && type <= 0x48) {
 				height = getFloat32Or64Bit(dataForSet, offsetForSet + 1);
 			}
 			if (height !== undefined) {
@@ -80,7 +79,8 @@ export default class TargetCanvas {
 		}
 		if (cmd & 0x01) {
 			// getter
-			advance.offsetForReturnArguments += setInt32(
+			dataForGet[offsetForGet] = 0x20;
+			advance.offsetForReturnArguments += setLength(
 				this.#canvas.height,
 				dataForGet,
 				offsetForGet,
@@ -106,7 +106,7 @@ export default class TargetCanvas {
 		const strFootPrint =
 			+(stringType & 0x0f) +
 			1 +
-			(getInt(dataForSet, offsetForSet + 1) as number);
+			(getLength(dataForSet, offsetForSet + 1) as number);
 		const cursor = offsetForSet + strFootPrint;
 		advance.offsetForArguments += strFootPrint;
 		let ctxSettings: CanvasRenderingContext2DSettings | undefined = undefined;
@@ -128,7 +128,7 @@ export default class TargetCanvas {
 				advance.offsetForReturnArguments +=
 					(dataForSet[cursor + 2] & 0x0f) +
 					1 +
-					(getInt(dataForSet, cursor + 2) as number);
+					(getLength(dataForSet, cursor + 2) as number);
 				const willReadFrequently = getBool(dataForSet, cursor + 3);
 				advance.offsetForReturnArguments += 3 /* for booleans */;
 				ctxSettings = { alpha, desynchronized, colorSpace, willReadFrequently };
@@ -161,7 +161,7 @@ export default class TargetCanvas {
 			const strFootPrint =
 				(firstArgumentType & 0x0f) +
 				1 +
-				(getInt(dataForSet, cursor + 1) as number);
+				(getLength(dataForSet, cursor + 1) as number);
 			cursor += strFootPrint;
 			advance.offsetForArguments += strFootPrint;
 		} else if (firstArgumentType !== 0x50) {

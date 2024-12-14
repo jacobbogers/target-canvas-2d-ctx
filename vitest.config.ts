@@ -5,5 +5,8 @@ export default defineConfig({
 		exclude: [...configDefaults.exclude],
 		environment: 'happy-dom',
 		globals: true,
+		coverage: {
+			provider: 'v8'
+		}
 	},
 });

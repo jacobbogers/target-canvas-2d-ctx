@@ -25,8 +25,8 @@ https://html.spec.whatwg.org/multipage/canvas.html
 | canvas    | toDataURL                        | fun          | string | string | *string                           | x    | x     | 0x0a              | 10        |
 | canvas    | toBlob                           | fun          | N/A    | N/A    | N/A                               | N/A  | N/A   | N/A               | N/A       |
 | canvas    | getContext                       | fun          | N/A    | string | *CanvasRenderingContext2DSettings |      |       |                   | 20        |
-| canvas    | length                           | prop get/set | number | number |                                   |      |       |                   | 31/32/33  |
-| canvas    | width                            | prop get/set | number | number |                                   |      |       |                   | 40/41     |
+| canvas    | height                           | prop get/set | number | number |                                   |      |       |                   | 31/32/33  |
+| canvas    | width                            | prop get/set | number | number |                                   |      |       |                   | 41/42/43     |
 | canvas    | CanvasRenderingContext2DSettings | struct       | N/A    | N/A    | N/A                               | N/A  | N/A   | N/A               | 80/81/.01 |
 
 The unqiueness of an object is determined its "type" path explicit or contextual    <namespace><x80><specific structure index tag> 

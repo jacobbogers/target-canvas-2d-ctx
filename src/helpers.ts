@@ -14,7 +14,7 @@ export function getFloat32Or64Bit(data: Uint8Array, offset: number): number {
 }
 
 export function getUint8Array(data: Uint8Array, offset: number): Uint8Array {
-	const nrLengthBytes = getInt(data, offset) as number;
+	const nrLengthBytes = getLength(data, offset) as number;
 	if (nrLengthBytes === 0) {
 		return EmptyUint8;
 	}
@@ -23,7 +23,7 @@ export function getUint8Array(data: Uint8Array, offset: number): Uint8Array {
 
 export function getString(data: Uint8Array, offset: number): string {
 	//   - string 0x10 (0 last nummble means emoty string) (includes nr of lengthbytes)  0x11-0x18
-	const nrLengthBytes = getInt(data, offset) as number;
+	const nrLengthBytes = getLength(data, offset) as number;
 	if (nrLengthBytes === 0) {
 		return '';
 	}
@@ -57,37 +57,16 @@ export function littleEndian2Int(
 	return value;
 }
 
-export function getInt(data: Uint8Array, offset: number): number | bigint {
-	// we already know the high nibble of data[ofst] is 0x2
-	switch (data[offset] & 0xf) {
-		case 8: {
-			const high = BigInt(littleEndian2Int(data, offset + 1 + 4, 4)) << 32n;
-			const low = BigInt(littleEndian2Int(data, offset + 1, 4));
-			return high + low;
-		}
-		case 4:
-			return littleEndian2Int(data, offset + 1, 4);
-		case 2:
-			return littleEndian2Int(data, offset + 1, 2);
-		case 1:
-			return littleEndian2Int(data, offset + 1, 2);
-		// case 0:
-		default:
-	}
-	return 0;
-}
-
-export function setInt32(
-	value: number,
+export function getLength(
 	data: Uint8Array,
-	offset: number,
+	offset: number
 ): number {
-	data[offset] = 0x24; // int32 data type marker
-	data[offset + 1] = value & 0xff;
-	data[offset + 2] = (value >> 8) & 0xff;
-	data[offset + 3] = (value >> 16) & 0xff;
-	data[offset + 4] = (value >> 24) & 0xff;
-	return 5;
+	const numBytes = (data[offset] & 0x0f);
+	let value = 0;
+	for (let i = 0; i < numBytes; i++) {
+		value += (data[offset + i + 1] << (i << 3));
+	}
+	return value;
 }
 
 export function setLength(
