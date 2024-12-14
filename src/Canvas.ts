@@ -30,12 +30,11 @@ export default class TargetCanvas {
 			// setter
 			// there is an argument
 			const type = dataForSet[offsetForSet + 1];
-			advance.offsetForArguments += type & (0x0f + 1);
+			advance.offsetForArguments += (type & 0x0f) + 1;
 			let width: number | undefined = undefined;
-			if (type >= 21 && type <= 24) {
+			if (type >= 0x21 && type <= 0x24) {
 				width = getLength(dataForSet, offsetForSet + 1) as number;
-			}
-			if (type >= 44 && type <= 48) {
+			} else if (type >= 0x44 && type <= 0x48) {
 				width = getFloat32Or64Bit(dataForSet, offsetForSet + 1);
 			}
 			if (width !== undefined) {
@@ -44,6 +43,7 @@ export default class TargetCanvas {
 		}
 		if (cmd & 0x01) {
 			// getter
+			dataForGet[offsetForGet] = 0x20;
 			advance.offsetForReturnArguments += setLength(
 				this.#canvas.width,
 				dataForGet,
@@ -99,14 +99,14 @@ export default class TargetCanvas {
 		if (!(stringType >= 0x11 && stringType <= 0x14)) {
 			return; // abort
 		}
-		const str = getString(dataForGet, offsetForSet);
+		const str = getString(dataForSet, offsetForSet);
 		if (str !== '2d') {
 			return;
 		}
 		const strFootPrint =
 			+(stringType & 0x0f) +
 			1 +
-			(getLength(dataForSet, offsetForSet + 1) as number);
+			(getLength(dataForSet, offsetForSet) as number);
 		const cursor = offsetForSet + strFootPrint;
 		advance.offsetForArguments += strFootPrint;
 		let ctxSettings: CanvasRenderingContext2DSettings | undefined = undefined;

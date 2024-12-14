@@ -3,7 +3,7 @@
 base types
 - null 0x00 
 - null + payload 0x01  
-- string 0x10 (0 last nummble means empty string) (includes nr of lengthbytes)  0x11-0x14   so nr lengthbytes is bewteen 1 to 4 bytes (max size 4.3 Gig)
+- string 0x10 (0 last nummble means empty string) (includes nr of lengthbytes)  0x11-(practical) 0x14    so nr lengthbytes is bewteen 1 to 4 bytes (max size 4.3 Gig)
 - int8 0x21
 - int16  0x22
 - int24  0x23

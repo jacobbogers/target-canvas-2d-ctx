@@ -1,6 +1,10 @@
 // reads intBool, int8, int16, int32 and int64 to js number (wich is a float64)
 
-const { decode } = new TextDecoder();
+const decode = (() => {
+	const td = new TextDecoder();
+	return td.decode.bind(td);
+})();
+
 const { encode } = new TextEncoder();
 
 const EmptyUint8 = new Uint8Array(0);
@@ -27,7 +31,7 @@ export function getString(data: Uint8Array, offset: number): string {
 	if (nrLengthBytes === 0) {
 		return '';
 	}
-	return decode(data.slice(offset + 1, offset + 1 + nrLengthBytes));
+	return decode(data.slice(offset + 2, offset + 2 + nrLengthBytes));
 }
 
 export function getBool(data: Uint8Array, offset: number): boolean {
