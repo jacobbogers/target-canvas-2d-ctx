@@ -157,11 +157,11 @@ export default class TargetCanvas {
 		let firstArgument: string | undefined = undefined;
 		const firstArgumentType = dataForSet[cursor];
 		if (firstArgumentType >= 0x11 && firstArgumentType <= 0x14) {
-			firstArgument = getString(dataForGet, cursor);
+			firstArgument = getString(dataForSet, cursor);
 			const strFootPrint =
 				(firstArgumentType & 0x0f) +
 				1 +
-				(getLength(dataForSet, cursor + 1) as number);
+				(getLength(dataForSet, cursor) as number);
 			cursor += strFootPrint;
 			advance.offsetForArguments += strFootPrint;
 		} else if (firstArgumentType !== 0x50) {
@@ -189,6 +189,7 @@ export default class TargetCanvas {
 			advance.offsetForReturnArguments += 1;
 			return;
 		}
+		// /^data\:image\/(?<type>[a-bA-B]+)[,;]+base64,(?<imgData>.*)$/;
 		const matches = baseUrlMatcher.exec(dUrl) as unknown as {
 			groups: { webp: string; imgData: string };
 		};
@@ -215,6 +216,7 @@ export default class TargetCanvas {
 			advance.offsetForReturnArguments += skip + 1;
 			return;
 		}
+		dataForGet[offsetForGet] = 0x60;
 		const ubytes = toByteArray(matches.groups.imgData);
 		const skip = setLength(ubytes.length, dataForGet, offsetForGet);
 		dataForGet.set(ubytes, offsetForGet + skip);

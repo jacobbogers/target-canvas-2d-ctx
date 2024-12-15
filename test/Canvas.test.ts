@@ -1,10 +1,13 @@
 import { createCanvas } from 'canvas';
 import TargetCanvas from '../src/Canvas';
-import { setLength } from '../src/helpers';
+import { getLength, setLength } from '../src/helpers';
 import type { Advance } from '../src/types';
 
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
-describe('Canvas-base', () => {
+
+describe.concurrent('Canvas-base', () => {
 	it('set & get the canvas width', () => {
 		const canvas: HTMLCanvasElement = window.document.createElement('canvas');
 		const target = new TargetCanvas(canvas);
@@ -70,5 +73,30 @@ describe('Canvas-base', () => {
 		expect(advance).toEqual({ offsetForArguments: 4, offsetForReturnArguments: 0 });
 		// unchanged
 		expect(response).toEqual(new Uint8Array([0xff]));
+	});
+	it('toDataURL (using canvas)', () => {
+		const canvas = createCanvas(256, 256);
+		const ctx = canvas.getContext('2d');
+		ctx.fillText('hello world', 10, 50);
+		ctx.closePath();
+		const target = new TargetCanvas(canvas as unknown as HTMLCanvasElement);
+
+		const imagePNG = new TextEncoder().encode('image/png');
+		const lengthDescr = Math.ceil(Math.ceil(Math.log2(imagePNG.byteLength)) / 8)
+		const byteLength = 1 /*for type*/ + lengthDescr /*for length*/ + imagePNG.byteLength /*for value*/;
+		// we have 1st size calculated, 2nd argument is optional (needs 0x50 byte)
+		const intr = new Uint8Array(byteLength + 1 /* for 0x50 */);
+		intr[0] = 0x10;
+		setLength(imagePNG.byteLength, intr, 0);
+		intr.set(imagePNG, 0 /*offset*/ + 1 + lengthDescr);
+		intr[byteLength] = 0x50; // no second argument
+		const response = new Uint8Array(8192);
+		const advance: Advance = { offsetForArguments: 0, offsetForReturnArguments: 0 };
+		// test
+		target.toDataURL(intr, 0, response, 0, 8192, advance);
+		const length = getLength(response, 0);
+		const fixtureImage = readFileSync(resolve(__dirname, 'fixture', 'test.png'));
+		expect(new Uint8Array(fixtureImage)).toEqual(response.slice(3, length + 3));
+		expect(advance).toEqual({ offsetForArguments: 11, offsetForReturnArguments: 828 });
 	});
 });
