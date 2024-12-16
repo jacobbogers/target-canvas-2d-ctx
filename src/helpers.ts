@@ -1,13 +1,31 @@
-// reads intBool, int8, int16, int32 and int64 to js number (wich is a float64)
-
 const decode = (() => {
 	const td = new TextDecoder();
 	return td.decode.bind(td);
 })();
 
-const { encode } = new TextEncoder();
+const encode = (() => {
+	const te = new TextEncoder();
+	return te.encode.bind(te);
+})();
+
 
 const EmptyUint8 = new Uint8Array(0);
+
+// decoders
+// decoders
+// decoders
+
+export function getLength(
+	data: Uint8Array,
+	offset: number
+): number {
+	const numBytes = (data[offset] & 0x0f);
+	let value = 0;
+	for (let i = 0; i < numBytes; i++) {
+		value += (data[offset + i + 1] << (i << 3));
+	}
+	return value;
+}
 
 // there is really no difference between
 export function getFloat32Or64Bit(data: Uint8Array, offset: number): number {
@@ -38,39 +56,22 @@ export function getBool(data: Uint8Array, offset: number): boolean {
 	return (data[offset + 1] & 0x01) === 1;
 }
 
-export function littleEndian2Int(
-	data: Uint8Array,
-	offset: number,
-	numBytes: number,
-): number {
-	let value = 0;
-	switch (numBytes) {
-		// biome-ignore lint/suspicious/noFallthroughSwitchClause: <explanation>
-		case 4:
-			value += data[offset + 3] << 24;
-			value += data[offset + 2] << 16;
-		// biome-ignore lint/suspicious/noFallthroughSwitchClause: <explanation>
-		case 2:
-			value += data[offset + 1] << 8;
-		// biome-ignore lint/suspicious/noFallthroughSwitchClause: <explanation>
-		case 1:
-			value += data[offset];
-		// case 0:
-		default:
-	}
-	return value;
-}
+// encoders
+// encoders
+// encoders
 
-export function getLength(
-	data: Uint8Array,
-	offset: number
-): number {
-	const numBytes = (data[offset] & 0x0f);
-	let value = 0;
-	for (let i = 0; i < numBytes; i++) {
-		value += (data[offset + i + 1] << (i << 3));
+export function setString(value: string, data: Uint8Array, offset: number, maxLen: number): number {
+	const bin = encode(value);
+	const numBytesForLength = Math.ceil(Math.ceil(Math.log2(bin.byteLength)) / 8);
+	const footPrint = 1 + numBytesForLength + bin.byteLength
+	if (footPrint > maxLen){
+		data[offset] = 0x10;
+		return 1;
 	}
-	return value;
+	data[offset] = 0x10;
+	const skip = setLength(numBytesForLength, data, offset);
+	data.set(bin, offset+ skip);
+	return footPrint;
 }
 
 export function setLength(
