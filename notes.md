@@ -2,7 +2,7 @@
 
 base types
 - null 0x00 
-- null + payload 0x01  
+- null + payload 0x01
 - string 0x10 (0 last nummble means empty string) (includes nr of lengthbytes)  0x11-(practical) 0x14    so nr lengthbytes is bewteen 1 to 4 bytes (max size 4.3 Gig)
 - int8 0x21
 - int16  0x22
@@ -14,7 +14,7 @@ base types
 - float32   0x44
 - float64   0x48
 - skip 0x50 (optional value omitted)  
-- ubyte  0x60 = zero length ubyte  (includes nr of length)   0x61-0x64   so nr lengthbytes is bewteen 1 to 4 bytes (max size 4.3 Gig)
+- ubyte  0x60 = zero length ubyte  (includes nr of length)  0x61-0x64   so nr lengthbytes is bewteen 1 to 4 bytes (max size 4.3 Gig)
 
 - object 0x80 first nibble is the structure type, second nimbble is the unique index within the context of the namespace
 
@@ -62,11 +62,8 @@ Example:
 var canvas = document.createElement('canvas');
 var dataUrl = canvas.toDataURL('image/webp');
 // -> data:image/webp;base64,UklGRogCAABXRUJQVlA4WA...."
-
 //    it could also be  "data:image/webp," (note the use of a "," instead of a ";")
-
-// In this case "webp" is supported, if it was not, it "dataUrl" would default to "data:image/png;base64,..."
-
+//    In this case "webp" is supported, if it was not, it "dataUrl" would default to "data:image/png;base64,..."
 
 canvas.length = 0; // canvas will have no pixels
 var dataUrl = canvas.toDataURL('image/webp');
