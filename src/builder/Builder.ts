@@ -1,13 +1,12 @@
-import { off } from "node:process";
-import { Advance } from "../types";
+import type { Advance } from "../types";
 
 export type NullArgument = {
     valueType: 0x00;
 };
 
-export type NullWithPayloadArgument<T extends Exclude<InputArguments, NullWithPayloadArgument> = StringArgument> = {
+export type NullWithPayloadArgument = {
     valueType: 0x01;
-    value: T;
+    value: Exclude<Exclude<InputArguments, NullWithPayloadArgument>, NullArgument>;
 };
 
 export type StringArgument = {
@@ -15,24 +14,22 @@ export type StringArgument = {
     value: string;
 }
 
+export type IntValueType = 0x21 | 0x22 | 0x23 | 0x24;
+
 export type IntArgument = {
     // this mapping gives negative or positive numbers between -4.2 and + 4.2 billion
     //      0x20 boolean false  0x30 (boolean true)
     //      0x21 1 byte      (-128, 127)
     //      0x22 2 bytes     (-32768, 32767)
     //      0x23 3 bytes     (-8388608, 8388607)
-    //      0x24 4 bytes     (-2147483648, 2147483647)
-    //      0x25 5 bytes     0x35 (negative)
-    //      0x26 6 bytes     0x36 (negative)
-    //      0x27 7 bytes     0x37 (negative)  beyond safe integer
-    //      0x28 8 bytes     0x38 (negative)  beyond safe integer
+    //      0x24 4 bytes     (-2147483648, 2147483647)   
     // this means we go from negative
-    valueType: 0x21 | 0x22 | 0x23 | 0x24 | 0x25 | 0x26 | 0x31 | 0x32 | 0x33 | 0x34 | 0x35 | 0x36;
+    valueType: IntValueType;
     value: number;
 }
 
 export type BoolArgument = {
-    valueType: 0x20 | 0x30;
+    valueType: 0x30 | 0x31;
 }
 
 export type FloatArgument = {
@@ -49,9 +46,9 @@ export type UbyteArgument = {
     value: Uint8Array;
 }
 
-export type ObjectArgument<T extends Exclude<InputArguments, NullWithPayloadArgument> = StringArgument> = {
+export type ObjectArgument = {
     valueType: 0x80;
-    value: T;
+    value: InputArguments[];
 }
 
 export type InputArguments =
@@ -64,6 +61,8 @@ export type InputArguments =
     NullWithPayloadArgument |
     IntArgument |
     StringArgument;
+
+export type InputArgumentsSansNullPayload = Exclude<Exclude<InputArguments, NullWithPayloadArgument>, NullArgument>
 
 export function lengthStorage(v: number): number {
     return Math.ceil(Math.log2(v) / 8);
@@ -138,29 +137,52 @@ export function getInt(buffer: Uint8Array, offset: number, advance: Advance): nu
 }
 
 export function createBuilder() {
-    const dv = new DataView(new Uint8Array(8).buffer);
-    dv.setBigUint64()
-        * 
-    const storage: InputArguments[] = [];
-    function i(v: number): IntArgument {
-        if (Number.isInteger(v))
-            // throw
-        }
-    const numBytes = lengthStorage(Number(v));
-    if (numBytes > 6) {
-        if (numBytes <= 8) { //bigint or float32/float64
-            if (typeof v === 'bigint') {
-                return;
-            }
-        }
-        // use float32/float64
-    }
-    // store as uint
-    const commands =
-    // function names
-    //i(34234234).s('somestring').bf.bt.n.nps().npi().npf32().npf64().skip.byte(...).obs.obe.
-    const handler: ProxyHandler<Record<never, never>> = {
+    const instructions: InputArguments[] = [];
 
+    function clear() {
+        instructions.splice(0);
     }
-    return new Proxy(Object.create(null) as Record<never, never>, handler);
+
+    function storeInt(n: number) {
+        const fp = intFootprint(n);
+        const valueType: 0x44 | IntValueType = fp > 6 ? 0x44 : (0x20 + fp) as IntValueType;
+        const instr: FloatArgument | IntArgument = {
+            value: n,
+            valueType,
+        };
+        instructions.push(instr);
+    }
+
+    function storeBool(b: boolean) {
+        instructions.push({
+            valueType: b ? 0x30 : 0X31,
+        });
+    }
+
+    function storeNull(payload?: InputArgumentsSansNullPayload) {
+        const input: NullArgument |
+            NullWithPayloadArgument = payload ? {
+                valueType: 0x01,
+                value: payload,
+            } : {
+                valueType: 0x00,
+            }
+        instructions.push(input);
+    }
+
+    function storeObject(payload: InputArguments[]) {
+        const input: ObjectArgument = {
+            valueType: 0x80,
+            value: payload,
+        };
+        instructions.push(input);
+    }
+
+
+
+}
+// function names
+//i(34234234).s('somestring').bf.bt.n.nps().npi().npf32().npf64().skip.byte(...).obs.obe.
+const handler: ProxyHandler<Record<never, never>> = {
+
 }
