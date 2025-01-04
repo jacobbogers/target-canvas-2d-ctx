@@ -1,15 +1,15 @@
-const decode = (() => {
+export const decode = (() => {
 	const td = new TextDecoder();
 	return td.decode.bind(td);
 })();
 
-const encode = (() => {
+export const encode = (() => {
 	const te = new TextEncoder();
 	return te.encode.bind(te);
 })();
 
 
-const EmptyUint8 = new Uint8Array(0);
+export const EmptyUint8 = new Uint8Array(0);
 
 // decoders
 // decoders
@@ -64,13 +64,13 @@ export function setString(value: string, data: Uint8Array, offset: number, maxLe
 	const bin = encode(value);
 	const numBytesForLength = Math.ceil(Math.ceil(Math.log2(bin.byteLength)) / 8);
 	const footPrint = 1 + numBytesForLength + bin.byteLength
-	if (footPrint > maxLen){
+	if (footPrint > maxLen) {
 		data[offset] = 0x10;
 		return 1;
 	}
 	data[offset] = 0x10;
 	const skip = setLength(numBytesForLength, data, offset);
-	data.set(bin, offset+ skip);
+	data.set(bin, offset + skip);
 	return footPrint;
 }
 

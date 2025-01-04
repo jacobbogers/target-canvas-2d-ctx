@@ -1,4 +1,5 @@
 import type { Advance } from "../types";
+import { encode } from '../helpers';
 
 export type NullArgument = {
     valueType: 0x00;
@@ -9,9 +10,11 @@ export type NullWithPayloadArgument = {
     value: Exclude<Exclude<InputArguments, NullWithPayloadArgument>, NullArgument>;
 };
 
+export type StringValuetype = 0x10 | 0x11 | 0x12 | 0x13 | 0x14;
+
 export type StringArgument = {
-    valueType: 0x10 | 0x11 | 0x12 | 0x13 | 0x14;
-    value: string;
+    valueType: StringValuetype;
+    value: Uint8Array;
 }
 
 export type IntValueType = 0x21 | 0x22 | 0x23 | 0x24;
@@ -41,8 +44,10 @@ export type OptionalArgument = {
     valueType: 0x50;
 }
 
+export type UbyteValueType = 0x61 | 0x62 | 0x63 | 0x64;
+
 export type UbyteArgument = {
-    valueType: 0x60 | 0x61 | 0x62 | 0x63 | 0x64;
+    valueType: UbyteValueType;
     value: Uint8Array;
 }
 
@@ -63,6 +68,12 @@ export type InputArguments =
     StringArgument;
 
 export type InputArgumentsSansNullPayload = Exclude<Exclude<InputArguments, NullWithPayloadArgument>, NullArgument>
+
+
+export interface Builder {
+    i(v: number): Builder;
+    s(s: string): Builder;
+}
 
 export function lengthStorage(v: number): number {
     return Math.ceil(Math.log2(v) / 8);
@@ -92,17 +103,17 @@ export function intFootprint(u: number): number {
     return Math.ceil((1 + Math.log2(Math.abs(u))) / 8);
 }
 
-export function storeFloat32(u: number, buffer: Uint8Array, offset: number, advance: Advance) {
+export function setFloat32(u: number, buffer: Uint8Array, offset: number, advance: Advance) {
     buffer[offset] = 0x44;
     const dv = new DataView(buffer.buffer, offset + 1);
     dv.setFloat32(0, u, true);
     advance.offsetForArguments += 5;
 }
 
-export function storeInt(u: number, buffer: Uint8Array, offset: number, advance: Advance) {
+export function setInt(u: number, buffer: Uint8Array, offset: number, advance: Advance) {
     const fp = intFootprint(u);
     if (u > 6) {
-        storeFloat32(u, buffer, offset, advance);
+        setFloat32(u, buffer, offset, advance);
         return;
     }
     const maxPositiveTwosComplement = 2 ** (fp * 8 - 1) - 1;
@@ -136,6 +147,8 @@ export function getInt(buffer: Uint8Array, offset: number, advance: Advance): nu
     return max2Compl > answer ? answer : max2Compl - answer;
 }
 
+
+
 export function createBuilder() {
     const instructions: InputArguments[] = [];
 
@@ -151,6 +164,7 @@ export function createBuilder() {
             valueType,
         };
         instructions.push(instr);
+        return rc;
     }
 
     function storeBool(b: boolean) {
@@ -178,11 +192,63 @@ export function createBuilder() {
         instructions.push(input);
     }
 
+    function storeString(payload: string) {
+        const ubytes = encode(payload);
+        const fp = intFootprint(ubytes.byteLength);
+        if (fp > 4) {
+            throw new RangeError('string length bigger then 2Gig');
+        }
+        instructions.push({
+            valueType: 0x10 + fp as StringValuetype,
+            value: ubytes,
+        });
+        return rc;
+    }
 
+    function storeFloat32(value: number) {
+        instructions.push({
+            value,
+            valueType: 0x44,
+        });
+    }
 
+    function storeFloat64(value: number) {
+        instructions.push({
+            value,
+            valueType: 0x48,
+        })
+    }
+
+    function storeSkip() {
+        instructions.push({
+            valueType: 0x50,
+        });
+    }
+
+    function storeUbyte(value: Uint8Array) {
+        const fp = intFootprint(value.byteLength);
+        if (fp > 4) {
+            throw new RangeError('Uint8Array length bigger then 2Gig');
+        }
+        instructions.push({
+            valueType: 0x60 + fp as UbyteValueType,
+            value,
+        });
+    }
+
+    const map = {
+        i: storeInt,
+        s: storeString,
+    };
+
+    // function names
+    const handler: ProxyHandler<Record<never, never>> = {
+        get(target, p: keyof typeof map, receiver) {
+            return map[p];
+        }
+    }
+
+    const rc = new Proxy(Object.create(null), handler) as Builder;
+    return rc;
 }
-// function names
-//i(34234234).s('somestring').bf.bt.n.nps().npi().npf32().npf64().skip.byte(...).obs.obe.
-const handler: ProxyHandler<Record<never, never>> = {
 
-}
