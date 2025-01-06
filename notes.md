@@ -1,15 +1,15 @@
 # RenderPipeline
 
 base types
-+ null 0x00 
-+ null + payload 0x01
-+ string 0x10 (0 last nibble means empty string) 0x11-0x14, so if 4 means 32bit twos complement (max size2.1 Gig)
-+ int8 0x21
-+ int16  0x22
-+ int24  0x23
-+ int32  0x24
-+ inty  0x2..(y/8)
-+ intBool 0x30  0x30 = false, 0x31 = true
+* null 0x00 
+* null + payload 0x01
+* string 0x10 (0 last nibble means empty string) 0x11-0x14, so if 4 means 32bit twos complement (max size2.1 Gig)
+* int8 0x21
+* int16  0x22
+* int24  0x23
+* int32  0x24
+* inty  0x2..(y/8)
+* intBool 0x30  0x30 = false, 0x31 = true
 + float32   0x44
 + float64   0x48
 + skip 0x50 (optional value omitted)  
@@ -72,7 +72,9 @@ var dataUrl = canvas.toDataURL('image/webp');
 ```typescript
 [Exposed=Window]
 interface HTMLCanvasElement : HTMLElement {
-  [HTMLConstructor] constructor();ç, optional any quality);
+  [HTMLConstructor] constructor();
+  
+  toDataURL(type?: string, quality?: any): string;
 
   // toBlob can throw "SecurityError" if the "origin-clean" is set to false
   undefined toBlob(BlobCallback _callback, optional DOMString type = "image/png", optional any quality); // null will be passed to the callback if the blob cannot created for some reason

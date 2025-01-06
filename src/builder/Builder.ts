@@ -71,36 +71,26 @@ export type InputArgumentsSansNullPayload = Exclude<Exclude<InputArguments, Null
 
 
 export interface Builder {
-    i(v: number): Builder;
+    n(payload?: InputArgumentsSansNullPayload): Builder;
     s(s: string): Builder;
+    i(v: number): Builder;
+    b(b: boolean): Builder;
+    f32(n: number): Builder;
+    f64(n: number): Builder;
+    skip(): Builder;
+    buf(v: Uint8Array): Builder;
+    obj(payload: InputArguments[]): Builder;
+    peek(): InputArguments[];
+    foot(): number;
+    comp(buffer: Uint8Array, offset: number): void;
+    clear(): Builder;
 }
 
-export function lengthStorage(v: number): number {
-    return Math.ceil(Math.log2(v) / 8);
-}
-
-
-/**
- * 
-Exmaple:
-var r = () => Math.random()*256;
-var ta = new Uint8Array(6).map(r);
-// -> Uint8Array(6) [ 161, 0, 86, 223, 237, 16 ];
-// since second part is 6-4 = 2 => 16 bites we get this 
-ta.reduceRight((c,v,i)=> { return c + v*(256**(i)); },0);
-// -> 18613840248993
-var maxPos48Bit = 2**(48-1)-1
-// -> 140737488355327
-var final = maxPos48Bit-uint
-// -> -36285341232401
-
- * 
- * 
- */
 
 // ints are always stored 2's complement so need to add one 1 bit extra for footprint
 export function intFootprint(u: number): number {
-    return Math.ceil((1 + Math.log2(Math.abs(u))) / 8);
+    const adj = u > 0 ? u + 1 : u;
+    return Math.ceil((1 + Math.log2(Math.abs(adj))) / 8);
 }
 
 export function setFloat32(u: number, buffer: Uint8Array, offset: number, advance: Advance) {
@@ -112,7 +102,7 @@ export function setFloat32(u: number, buffer: Uint8Array, offset: number, advanc
 
 export function setInt(u: number, buffer: Uint8Array, offset: number, advance: Advance) {
     const fp = intFootprint(u);
-    if (u > 6) {
+    if (fp > 6) {
         setFloat32(u, buffer, offset, advance);
         return;
     }
@@ -136,9 +126,10 @@ export function setInt(u: number, buffer: Uint8Array, offset: number, advance: A
 export function getInt(buffer: Uint8Array, offset: number, advance: Advance): number {
     const footPrint = buffer[offset] & 0x0f;
     let answer = 0;
+    let power = 1;
     for (let i = 0; i < footPrint; i++) {
-        answer += buffer[offset + i + 1];
-        answer *= 256;
+        answer += buffer[offset + i + 1] * power;
+        power *= 256;
     }
     const max2Compl = 2 ** (footPrint * 8 - 1) - 1;
     // u = max2Compl - p
@@ -154,6 +145,7 @@ export function createBuilder() {
 
     function clear() {
         instructions.splice(0);
+        return rc;
     }
 
     function storeInt(n: number) {
@@ -171,6 +163,7 @@ export function createBuilder() {
         instructions.push({
             valueType: b ? 0x30 : 0X31,
         });
+        return rc;
     }
 
     function storeNull(payload?: InputArgumentsSansNullPayload) {
@@ -182,6 +175,7 @@ export function createBuilder() {
                 valueType: 0x00,
             }
         instructions.push(input);
+        return rc;
     }
 
     function storeObject(payload: InputArguments[]) {
@@ -190,6 +184,7 @@ export function createBuilder() {
             value: payload,
         };
         instructions.push(input);
+        return rc;
     }
 
     function storeString(payload: string) {
@@ -210,19 +205,22 @@ export function createBuilder() {
             value,
             valueType: 0x44,
         });
+        return rc;
     }
 
     function storeFloat64(value: number) {
         instructions.push({
             value,
             valueType: 0x48,
-        })
+        });
+        return rc;
     }
 
     function storeSkip() {
         instructions.push({
             valueType: 0x50,
         });
+        return rc;
     }
 
     function storeUbyte(value: Uint8Array) {
@@ -234,11 +232,35 @@ export function createBuilder() {
             valueType: 0x60 + fp as UbyteValueType,
             value,
         });
+        return rc;
+    }
+
+    function getAllInstructions(): InputArguments[] {
+        return structuredClone(instructions);
+    }
+
+    function algamatedFootprint(): number {
+        return 0;
+    }
+
+    function compile(buffer: Uint8Array, offset: number) {
+        return;
     }
 
     const map = {
+        n: storeNull,
         i: storeInt,
         s: storeString,
+        b: storeBool,
+        f32: storeFloat32,
+        f64: storeFloat64,
+        skip: storeSkip,
+        buf: storeUbyte,
+        obj: storeObject,
+        peek: getAllInstructions,
+        foot: algamatedFootprint,
+        comp: compile,
+        clear: clear,
     };
 
     // function names

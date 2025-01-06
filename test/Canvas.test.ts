@@ -49,7 +49,6 @@ describe.concurrent('Canvas-base', () => {
 		const advance: Advance = { offsetForArguments: 0, offsetForReturnArguments: 0 };
 		// test
 		target.getContext(intr, 0, response, 0, advance);
-		console.log(response);
 		expect(advance).toEqual({ offsetForArguments: 4, offsetForReturnArguments: 1 });
 		expect(response).toEqual(new Uint8Array([0]));
 	});
@@ -68,7 +67,6 @@ describe.concurrent('Canvas-base', () => {
 		const advance: Advance = { offsetForArguments: 0, offsetForReturnArguments: 0 };
 		// test
 		target.getContext(intr, 0, response, 0, advance);
-		console.log(response);
 		// no error return status, offsetForReturnArguments = 0
 		expect(advance).toEqual({ offsetForArguments: 4, offsetForReturnArguments: 0 });
 		// unchanged
