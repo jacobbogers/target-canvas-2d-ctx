@@ -240,6 +240,15 @@ export function createBuilder() {
     }
 
     function algamatedFootprint(): number {
+        let count = 0;
+        for (let i = 0; i < instructions.length; i++) {
+            const inst = instructions[i];
+            switch (inst.valueType) {
+                case 0x00:
+                    count++;
+
+            }
+        }
         return 0;
     }
 
