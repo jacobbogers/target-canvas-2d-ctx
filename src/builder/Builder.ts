@@ -5,9 +5,11 @@ export type NullArgument = {
     valueType: 0x00;
 };
 
+export type NullWithPayloadArgumentValue = Exclude<Exclude<InputArguments, NullWithPayloadArgument>, NullArgument>;
+
 export type NullWithPayloadArgument = {
     valueType: 0x01;
-    value: Exclude<Exclude<InputArguments, NullWithPayloadArgument>, NullArgument>;
+    value: NullWithPayloadArgumentValue[];
 };
 
 export type StringValuetype = 0x10 | 0x11 | 0x12 | 0x13 | 0x14;
@@ -166,7 +168,7 @@ export function createBuilder() {
         return rc;
     }
 
-    function storeNull(payload?: InputArgumentsSansNullPayload) {
+    function storeNull(payload?: InputArgumentsSansNullPayload[]) {
         const input: NullArgument |
             NullWithPayloadArgument = payload ? {
                 valueType: 0x01,
@@ -239,17 +241,23 @@ export function createBuilder() {
         return structuredClone(instructions);
     }
 
-    function algamatedFootprint(): number {
+    function algamation<T extends InputArguments[]>(inst: T): number {
         let count = 0;
-        for (let i = 0; i < instructions.length; i++) {
-            const inst = instructions[i];
-            switch (inst.valueType) {
+        for (let i = 0; i < inst.length; i++) {
+            const command = inst[i];
+            switch (command.valueType) {
                 case 0x00:
-                    count++;
-
+                    count +=1;
+                    continue;
+                case 0x01:
+                    count += algamation(command.value)
             }
         }
         return 0;
+    }
+
+    function bootStrapFootprint(): number {
+        return algamation(instructions);
     }
 
     function compile(buffer: Uint8Array, offset: number) {
@@ -267,7 +275,7 @@ export function createBuilder() {
         buf: storeUbyte,
         obj: storeObject,
         peek: getAllInstructions,
-        foot: algamatedFootprint,
+        foot: bootStrapFootprint,
         comp: compile,
         clear: clear,
     };

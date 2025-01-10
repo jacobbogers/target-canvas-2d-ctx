@@ -18,7 +18,8 @@ describe.concurrent('Canvas-base', () => {
 		build
 		.i(0x33) // oid set and get marker
 		.i(0x1ff); // 511 is the width
-		console.log(build.peek());
+		// console.log(build.peek());
+		// -> [ { value: 51, valueType: 33 }, { value: 511, valueType: 34 } ]
 		const intr = new Uint8Array([0x33, 0x22, 0xff, 0x01]);
 		const response = new Uint8Array(8);
 		const advance: Advance = { offsetForArguments: 0, offsetForReturnArguments: 0 };
