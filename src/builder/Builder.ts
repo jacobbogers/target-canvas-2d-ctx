@@ -73,7 +73,7 @@ export type InputArgumentsSansNullPayload = Exclude<Exclude<InputArguments, Null
 
 
 export interface Builder {
-    n(payload?: InputArgumentsSansNullPayload): Builder;
+    n(payload?: InputArgumentsSansNullPayload[]): Builder;
     s(s: string): Builder;
     i(v: number): Builder;
     b(b: boolean): Builder;
@@ -241,24 +241,39 @@ export function createBuilder() {
         return structuredClone(instructions);
     }
 
-    function algamation<T extends InputArguments[]>(inst: T): number {
+    function footPrint(commands: InputArguments[]): number {
         let count = 0;
-        for (let i = 0; i < inst.length; i++) {
-            const command = inst[i];
+        for (let i = 0; i < commands.length; i++) {
+            const command = commands[i];
             switch (command.valueType) {
                 case 0x00:
-                    count +=1;
-                    continue;
+                    count += 1;
+                    break;
                 case 0x01:
-                    count += algamation(command.value)
+                    count += 1 + footPrint(command.value);
+                    break;
+                // string    
+                case 0x10:
+                case 0x11:
+                case 0x12:
+                case 0x13:
+                case 0x14:
+                    count += 1 + (command.valueType & 0x0f) + command.value.byteLength;
+                    break;
+                case 0x30:
+                case 0x31:
+                    count += 1;
+                    break;
+
             }
         }
-        return 0;
+        return count;
     }
 
-    function bootStrapFootprint(): number {
-        return algamation(instructions);
+    function startFootPrint(): number {
+        return footPrint(instructions);
     }
+
 
     function compile(buffer: Uint8Array, offset: number) {
         return;
@@ -275,7 +290,7 @@ export function createBuilder() {
         buf: storeUbyte,
         obj: storeObject,
         peek: getAllInstructions,
-        foot: bootStrapFootprint,
+        foot: intFootprint,
         comp: compile,
         clear: clear,
     };
