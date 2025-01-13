@@ -1,5 +1,17 @@
 import type { Advance } from "../types";
-import { encode } from '../helpers';
+
+export const decode = (() => {
+    const td = new TextDecoder();
+    return td.decode.bind(td);
+})();
+
+export const encode = (() => {
+    const te = new TextEncoder();
+    return te.encode.bind(te);
+})();
+
+
+export const EmptyUint8 = new Uint8Array(0);
 
 export type NullArgument = {
     valueType: 0x00;
@@ -88,6 +100,13 @@ export interface Builder {
     clear(): Builder;
 }
 
+export function isString(u: InputArguments): u is StringArgument {
+    return u.valueType >= 0x10 && u.valueType <= 0x14;
+}
+
+export function isInt(u: InputArguments): u is IntArgument {
+    return u.valueType >= 0x21 && u.valueType <= 0x26;
+}
 
 // ints are always stored 2's complement so need to add one 1 bit extra for footprint
 export function intFootprint(u: number): number {
@@ -100,13 +119,21 @@ export function setFloat32(u: number, buffer: Uint8Array, offset: number, advanc
     const dv = new DataView(buffer.buffer, offset + 1);
     dv.setFloat32(0, u, true);
     advance.offsetForArguments += 5;
+    return 5;
 }
 
-export function setInt(u: number, buffer: Uint8Array, offset: number, advance: Advance) {
+export function setFloat64(u: number, buffer: Uint8Array, offset: number, advance: Advance) {
+    buffer[offset] = 0x48;
+    const dv = new DataView(buffer.buffer, offset + 1);
+    dv.setFloat64(0, u, true);
+    advance.offsetForArguments += 9;
+    return 9;
+}
+
+export function setInt(u: number, buffer: Uint8Array, offset: number, advance: Advance): number {
     const fp = intFootprint(u);
     if (fp > 6) {
-        setFloat32(u, buffer, offset, advance);
-        return;
+        return setFloat32(u, buffer, offset, advance);
     }
     const maxPositiveTwosComplement = 2 ** (fp * 8 - 1) - 1;
     const p = (u < 0) ?
@@ -123,6 +150,7 @@ export function setInt(u: number, buffer: Uint8Array, offset: number, advance: A
         buffer[offset + i + 1] = b;
     }
     advance.offsetForArguments += fp + 1;
+    return fp + 1;
 }
 
 export function getInt(buffer: Uint8Array, offset: number, advance: Advance): number {
@@ -246,6 +274,9 @@ export function createBuilder() {
         for (let i = 0; i < commands.length; i++) {
             const command = commands[i];
             switch (command.valueType) {
+                case 0x80:
+                    count += 1 + footPrint(command.value);
+                    break;
                 case 0x00:
                     count += 1;
                     break;
@@ -297,8 +328,79 @@ export function createBuilder() {
         return footPrint(instructions);
     }
 
+    function compile(commands: InputArguments[], buffer: Uint8Array, offset: number, advance: Advance): number {
+        let csr = offset;
+        for (let i = 0; i < commands.length; i++) {
+            const command = commands[i];
+            switch (command.valueType) {
+                case 0x80:
+                    buffer[csr] = 0x80;
+                    advance.offsetForArguments += 1;
+                    csr += 1;
+                    csr += compile(command.value, buffer, csr, advance);
+                    break;
+                case 0x00:
+                    advance.offsetForArguments += 1;
+                    buffer[csr] = 0x00;
+                    break;
+                case 0x01:
+                    buffer[csr] = 0x01;
+                    advance.offsetForArguments += 1;
+                    csr += 1;
+                    csr += compile(command.value, buffer, csr, advance);
+                    break;
+                // string or ubyte   
+                case 0x10:
+                case 0x11:
+                case 0x12:
+                case 0x13:
+                case 0x14:
+                case 0x60:
+                case 0x61:
+                case 0x62:
+                case 0x63:
+                case 0x64:
+                    buffer[csr++] = command.valueType;
+                    csr += setInt(command.value.byteLength, buffer, csr, advance);
+                    buffer.set(command.value, csr);
+                    csr += command.value.byteLength;
+                    advance.offsetForArguments = command.value.byteLength;
+                    break;
+                case 0x30:
+                case 0x31:
+                    buffer[csr] = command.valueType;
+                    csr += 1;
+                    advance.offsetForArguments += 1;
+                    break;
+                // integer    
+                case 0x21:
+                case 0x22:
+                case 0x23:
+                case 0x24:
+                case 0x25:
+                case 0x26:
+                    csr += setInt(command.value, buffer, csr, advance);
+                    break;
+                // optional, skip    
+                case 0x50:
+                    buffer[offset + csr] = 0x50;
+                    csr += 1;
+                    advance.offsetForArguments = +1;
+                    break;
+                case 0x44:
+                    csr += setFloat32(command.value, buffer, csr, advance);
+                    break;
+                case 0x48:
+                    csr += setFloat64(command.value, buffer, csr, advance);
+                    break;
+                default:
+            }
+        }
+        return csr;
+    }
 
-    function compile(buffer: Uint8Array, offset: number) {
+    function compileinit(buffer: Uint8Array, offset: number, advance: Advance) {
+        compile(instructions, buffer, offset, advance,)
         return;
     }
 

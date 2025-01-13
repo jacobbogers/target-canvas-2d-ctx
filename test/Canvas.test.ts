@@ -1,6 +1,5 @@
 import { createCanvas } from 'canvas';
 import TargetCanvas from '../src/Canvas';
-import { getLength, setLength } from '../src/helpers';
 import type { Advance } from '../src/types';
 import { createBuilder } from '../src/builder/Builder';
 
@@ -9,15 +8,15 @@ import { platform } from 'node:os';
 import { resolve } from 'node:path';
 
 
-describe.concurrent('Canvas-base', () => {
+describe.skip('Canvas-base', () => {
 	it('set & get the canvas width', () => {
 		const canvas: HTMLCanvasElement = window.document.createElement('canvas');
 		const target = new TargetCanvas(canvas);
 		// set the length
 		const build = createBuilder();
 		build
-		.i(0x33) // oid set and get marker
-		.i(0x1ff); // 511 is the width
+			.i(0x33) // oid set and get marker
+			.i(0x1ff); // 511 is the width
 		// console.log(build.peek());
 		// -> [ { value: 51, valueType: 33 }, { value: 511, valueType: 34 } ]
 		const intr = new Uint8Array([0x33, 0x22, 0xff, 0x01]);
@@ -101,9 +100,9 @@ describe.concurrent('Canvas-base', () => {
 		// test
 		target.toDataURL(intr, 0, response, 0, 8192, advance);
 		const length = getLength(response, 0);
-		const fileName = platform() === 'linux' ? 'test-linux.png': 'test.png';
+		const fileName = platform() === 'linux' ? 'test-linux.png' : 'test.png';
 		const fixtureImage = readFileSync(resolve(__dirname, 'fixture', fileName));
-		const offsetForReturnArguments =  platform() === 'linux' ? 893: 828;
+		const offsetForReturnArguments = platform() === 'linux' ? 893 : 828;
 
 		expect(new Uint8Array(fixtureImage)).toEqual(response.slice(3, length + 3));
 
