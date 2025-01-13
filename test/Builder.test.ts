@@ -25,6 +25,7 @@ describe('Builder', () => {
             { value: 255, valueType: 0x22 },
             { value: -129, valueType: 0x22 }
         ]);
+        expect(builder.foot()).toBe(30);
         const ubytes = new Uint8Array(3)
         const advance = {
             offsetForArguments: 0,

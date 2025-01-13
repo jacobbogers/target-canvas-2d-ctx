@@ -19,7 +19,7 @@ export type StringArgument = {
     value: Uint8Array;
 }
 
-export type IntValueType = 0x21 | 0x22 | 0x23 | 0x24;
+export type IntValueType = 0x21 | 0x22 | 0x23 | 0x24 | 0x25 | 0x26;
 
 export type IntArgument = {
     // this mapping gives negative or positive numbers between -4.2 and + 4.2 billion
@@ -46,7 +46,7 @@ export type OptionalArgument = {
     valueType: 0x50;
 }
 
-export type UbyteValueType = 0x61 | 0x62 | 0x63 | 0x64;
+export type UbyteValueType = 0x60 | 0x61 | 0x62 | 0x63 | 0x64;
 
 export type UbyteArgument = {
     valueType: UbyteValueType;
@@ -252,19 +252,42 @@ export function createBuilder() {
                 case 0x01:
                     count += 1 + footPrint(command.value);
                     break;
-                // string    
+                // string or ubyte   
                 case 0x10:
                 case 0x11:
                 case 0x12:
                 case 0x13:
                 case 0x14:
+                case 0x60:
+                case 0x61:
+                case 0x62:
+                case 0x63:
+                case 0x64:
                     count += 1 + (command.valueType & 0x0f) + command.value.byteLength;
                     break;
                 case 0x30:
                 case 0x31:
                     count += 1;
                     break;
-
+                // integer    
+                case 0x21:
+                case 0x22:
+                case 0x23:
+                case 0x24:
+                case 0x25:
+                case 0x26:
+                    count += 1 + (command.valueType & 0x0f);
+                    break;
+                case 0x50:
+                    count += 1;
+                    break;
+                case 0x44:
+                    count += 1 + 4;
+                    break;
+                case 0x48:
+                    count += 1 + 8;
+                    break;
+                default:
             }
         }
         return count;
@@ -290,7 +313,7 @@ export function createBuilder() {
         buf: storeUbyte,
         obj: storeObject,
         peek: getAllInstructions,
-        foot: intFootprint,
+        foot: startFootPrint,
         comp: compile,
         clear: clear,
     };
