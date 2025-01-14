@@ -14,8 +14,8 @@ base types
 + float64   0x48
 + skip 0x50 (optional value omitted)  
 + ubyte  0x60 = zero length ubyte  (includes nr of length)  0x61-0x64   so nr lengthbytes is bewteen 1 to 4 bytes (max size 4.3 Gig)
-
-+ object 0x80 first nibble is the structure type, second nimbble is the unique index within the context of the namespace
++ object start 0x80 first nibble is the structure type, second nimbble is the unique index within the context of the namespace
++ object end 0x81
 
 https://html.spec.whatwg.org/multipage/canvas.html
 

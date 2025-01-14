@@ -65,13 +65,18 @@ export type UbyteArgument = {
     value: Uint8Array;
 }
 
-export type ObjectArgument = {
+export type ObjectArgumentEnd = {
+    valueType: 0x81;
+}
+
+export type ObjectArgumentStart = {
     valueType: 0x80;
-    value: InputArguments[];
+    value: [...InputArguments[], ObjectArgumentEnd];
 }
 
 export type InputArguments =
-    ObjectArgument |
+    ObjectArgumentStart |
+    ObjectArgumentEnd |
     UbyteArgument |
     OptionalArgument |
     FloatArgument |
@@ -96,20 +101,15 @@ export interface Builder {
     obj(payload: InputArguments[]): Builder;
     peek(): InputArguments[];
     foot(): number;
-    comp(buffer: Uint8Array, offset: number): void;
+    comp(buffer: Uint8Array, offset: number, advance: Advance): number;
     clear(): Builder;
-}
-
-export function isString(u: InputArguments): u is StringArgument {
-    return u.valueType >= 0x10 && u.valueType <= 0x14;
-}
-
-export function isInt(u: InputArguments): u is IntArgument {
-    return u.valueType >= 0x21 && u.valueType <= 0x26;
 }
 
 // ints are always stored 2's complement so need to add one 1 bit extra for footprint
 export function intFootprint(u: number): number {
+    if (Math.trunc(u) === 0) {
+        return 1;
+    }
     const adj = u > 0 ? u + 1 : u;
     return Math.ceil((1 + Math.log2(Math.abs(adj))) / 8);
 }
@@ -132,14 +132,14 @@ export function setFloat64(u: number, buffer: Uint8Array, offset: number, advanc
 
 export function setInt(u: number, buffer: Uint8Array, offset: number, advance: Advance): number {
     const fp = intFootprint(u);
-    if (fp > 6) {
-        return setFloat32(u, buffer, offset, advance);
-    }
-    const maxPositiveTwosComplement = 2 ** (fp * 8 - 1) - 1;
+    // if (fp > 6) {
+    //    return setFloat32(u, buffer, offset, advance);
+    // }
+    const maxPositiveTwosComplement = 2 ** (fp * 8);
     const p = (u < 0) ?
         // u = max2Compl - p
         // p = max2Compl - u
-        maxPositiveTwosComplement - u :
+        maxPositiveTwosComplement + u :
         u;
     // bit shifting with ints bigger then 32 bits is not possible in js 
     buffer[offset] = 0x20 + fp;
@@ -167,8 +167,6 @@ export function getInt(buffer: Uint8Array, offset: number, advance: Advance): nu
     advance.offsetForReturnArguments += 1 + footPrint;
     return max2Compl > answer ? answer : max2Compl - answer;
 }
-
-
 
 export function createBuilder() {
     const instructions: InputArguments[] = [];
@@ -209,9 +207,9 @@ export function createBuilder() {
     }
 
     function storeObject(payload: InputArguments[]) {
-        const input: ObjectArgument = {
+        const input: ObjectArgumentStart = {
             valueType: 0x80,
-            value: payload,
+            value: [...payload, { valueType: 0x81 }],
         };
         instructions.push(input);
         return rc;
@@ -399,9 +397,8 @@ export function createBuilder() {
         return csr;
     }
 
-    function compileinit(buffer: Uint8Array, offset: number, advance: Advance) {
-        compile(instructions, buffer, offset, advance,)
-        return;
+    function compileInit(buffer: Uint8Array, offset: number, advance: Advance): number {
+        return compile(instructions, buffer, offset, advance,);
     }
 
     const map = {
@@ -416,7 +413,7 @@ export function createBuilder() {
         obj: storeObject,
         peek: getAllInstructions,
         foot: startFootPrint,
-        comp: compile,
+        comp: compileInit,
         clear: clear,
     };
 
