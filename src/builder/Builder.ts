@@ -1,5 +1,5 @@
-import type { Advance } from "../types";
-import { encode } from "../helpers";
+import type { Advance } from '../types';
+import { encode } from '../helpers';
 import type {
     Builder,
     FloatArgument,
@@ -11,9 +11,9 @@ import type {
     NullWithPayloadArgument,
     ObjectArgumentStart,
     StringValuetype,
-    UbyteValueType
-} from "./types";
-import { intFootprint, setFloat32, setFloat64, setInt } from "./helpers";
+    UbyteValueType,
+} from './types';
+import { intFootprint, setFloat32, setFloat64, setInt } from './helpers';
 
 export default function createBuilder() {
     const instructions: InputArguments[] = [];
@@ -25,7 +25,8 @@ export default function createBuilder() {
 
     function storeInt(n: number) {
         const fp = intFootprint(n);
-        const valueType: 0x44 | IntValueType = fp > 6 ? 0x44 : (0x20 + fp) as IntValueType;
+        const valueType: 0x44 | IntValueType =
+            fp > 6 ? 0x44 : ((0x20 + fp) as IntValueType);
         const instr: FloatArgument | IntArgument = {
             value: n,
             valueType,
@@ -36,19 +37,20 @@ export default function createBuilder() {
 
     function storeBool(b: boolean) {
         instructions.push({
-            valueType: b ? 0x30 : 0X31,
+            valueType: b ? 0x30 : 0x31,
         });
         return rc;
     }
 
     function storeNull(payload?: InputArgumentsSansNullPayload[]) {
-        const input: NullArgument |
-            NullWithPayloadArgument = payload ? {
+        const input: NullArgument | NullWithPayloadArgument = payload
+            ? {
                 valueType: 0x01,
                 value: payload,
-            } : {
-                valueType: 0x00,
             }
+            : {
+                valueType: 0x00,
+            };
         instructions.push(input);
         return rc;
     }
@@ -69,7 +71,7 @@ export default function createBuilder() {
             throw new RangeError('string length bigger then 2Gig');
         }
         instructions.push({
-            valueType: 0x10 + fp as StringValuetype,
+            valueType: (0x10 + fp) as StringValuetype,
             value: ubytes,
         });
         return rc;
@@ -104,7 +106,7 @@ export default function createBuilder() {
             throw new RangeError('Uint8Array length bigger then 2Gig');
         }
         instructions.push({
-            valueType: 0x60 + fp as UbyteValueType,
+            valueType: (0x60 + fp) as UbyteValueType,
             value,
         });
         return rc;
@@ -128,13 +130,11 @@ export default function createBuilder() {
                 case 0x01:
                     count += 1 + footPrint(command.value);
                     break;
-                // string or ubyte   
-                case 0x10:
+                // string or ubyte
                 case 0x11:
                 case 0x12:
                 case 0x13:
                 case 0x14:
-                case 0x60:
                 case 0x61:
                 case 0x62:
                 case 0x63:
@@ -145,7 +145,7 @@ export default function createBuilder() {
                 case 0x31:
                     count += 1;
                     break;
-                // integer    
+                // integer
                 case 0x21:
                 case 0x22:
                 case 0x23:
@@ -164,6 +164,7 @@ export default function createBuilder() {
                     count += 1 + 8;
                     break;
                 default:
+                    throw new TypeError(`undefined type: ${JSON.stringify(command)}`);
             }
         }
         return count;
@@ -173,10 +174,15 @@ export default function createBuilder() {
         return footPrint(instructions);
     }
 
-    function compile(commands: InputArguments[], buffer: Uint8Array, offset: number, advance: Advance = {
-        offsetForArguments: 0,
-        offsetForReturnArguments: 0
-    }): number {
+    function compile(
+        commands: InputArguments[],
+        buffer: Uint8Array,
+        offset: number,
+        advance: Advance = {
+            offsetForArguments: 0,
+            offsetForReturnArguments: 0,
+        },
+    ): number {
         let csr = offset;
         for (let i = 0; i < commands.length; i++) {
             const command = commands[i];
@@ -197,18 +203,22 @@ export default function createBuilder() {
                     csr += 1;
                     csr += compile(command.value, buffer, csr, advance);
                     break;
-                // string or ubyte   
-                case 0x10:
+                // string or ubyte
                 case 0x11:
                 case 0x12:
                 case 0x13:
                 case 0x14:
-                case 0x60:
                 case 0x61:
                 case 0x62:
                 case 0x63:
                 case 0x64:
-                    csr += setInt((command.valueType & 0xf0) as 0x10 | 0x60, command.value.byteLength, buffer, csr, advance);
+                    csr += setInt(
+                        (command.valueType & 0xf0) as 0x10 | 0x60,
+                        command.value.byteLength,
+                        buffer,
+                        csr,
+                        advance,
+                    );
                     buffer.set(command.value, csr);
                     csr += command.value.byteLength;
                     advance.offsetForArguments = command.value.byteLength;
@@ -219,7 +229,7 @@ export default function createBuilder() {
                     csr += 1;
                     advance.offsetForArguments += 1;
                     break;
-                // integer    
+                // integer
                 case 0x21:
                 case 0x22:
                 case 0x23:
@@ -228,7 +238,7 @@ export default function createBuilder() {
                 case 0x26:
                     csr += setInt(0x20, command.value, buffer, csr, advance);
                     break;
-                // optional, skip    
+                // optional, skip
                 case 0x50:
                     buffer[offset + csr] = 0x50;
                     csr += 1;
@@ -241,13 +251,18 @@ export default function createBuilder() {
                     csr += setFloat64(command.value, buffer, csr, advance);
                     break;
                 default:
+                    throw new TypeError(`undefined type: ${JSON.stringify(command)}`);
             }
         }
         return csr;
     }
 
-    function compileInit(buffer: Uint8Array, offset: number, advance: Advance): number {
-        return compile(instructions, buffer, offset, advance,);
+    function compileInit(
+        buffer: Uint8Array,
+        offset: number,
+        advance: Advance,
+    ): number {
+        return compile(instructions, buffer, offset, advance);
     }
 
     const map = {
@@ -270,10 +285,9 @@ export default function createBuilder() {
     const handler: ProxyHandler<Record<never, never>> = {
         get(target, p: keyof typeof map, receiver) {
             return map[p];
-        }
-    }
+        },
+    };
 
     const rc = new Proxy(Object.create(null), handler) as Builder;
     return rc;
 }
-

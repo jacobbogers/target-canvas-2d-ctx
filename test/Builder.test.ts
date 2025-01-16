@@ -1,5 +1,6 @@
 import createBuilder from "../src/builder/Builder";
 import type { Advance } from "../src/types";
+import u8intFixture from './fixture/byte-buffer-fixtures';
 
 
 describe('Builder', () => {
@@ -138,7 +139,6 @@ describe('Builder', () => {
                 ])
             }
         ])
-        console.log(builder.peek());
         expect(builder.foot()).toBe(68)
         expect(builder.foot()).toBe(68);
         const footPrintQbf = qbfLength + 1 + 1;
@@ -146,7 +146,7 @@ describe('Builder', () => {
         expect(footPrintQbf + footPrintTmas).toBe(68);
         const ubuf = new Uint8Array(68);
         builder.comp(ubuf, 0);
-        expect(ubuf).toEqual([
+        expect(ubuf).toEqual(new Uint8Array([
             // string 1
             17, 43, 116, 104, 101, 32, 113, 117, 105, 99, 107,
             32, 98, 114, 111, 119, 110, 32, 102, 111, 120, 32,
@@ -157,6 +157,23 @@ describe('Builder', () => {
             17, 21, 116, 101, 108, 108, 32, 109, 101, 32,
             97, 110, 111, 116, 104, 101, 114, 32, 115, 116, 111,
             114, 121
-        ]);
+        ]));
+
+        // empty string
+        builder.clear().s('');
+        console.log(builder.peek(), builder.foot());
+        const target = new Uint8Array(2);
+        builder.comp(target, 0);
+        console.log(target);
+    });
+    it('byte arrays', () => {
+        const builder = createBuilder();
+        const buf1 = u8intFixture.slice(3, 3 + 128);
+        const buf2 = u8intFixture.slice(3 + 128 + 2, 3 + 128 + 2 + 127);
+        builder.buf(buf1).buf(buf2);
+        expect(builder.foot()).toBe((1 + 2 + 128) + (1 + 1 + 127));
+        const target = new Uint8Array(builder.foot());
+        builder.comp(target, 0);
+        expect(target).toEqual(u8intFixture);
     });
 });
