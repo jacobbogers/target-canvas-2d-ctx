@@ -1,4 +1,4 @@
-import { createBuilder } from "../src/builder/Builder";
+import createBuilder from "../src/builder/Builder";
 import type { Advance } from "../src/types";
 
 
@@ -87,5 +87,76 @@ describe('Builder', () => {
         expect(byteCount).toBe(2);
         expect(advance).toEqual({ offsetForArguments: 2, offsetForReturnArguments: 0 });
         expect(buffer).toEqual(new Uint8Array([48, 49]));
+    });
+    it('skip/optional', () => {
+        const builder = createBuilder();
+        builder.skip().i(4).skip();
+        expect(builder.peek()).toEqual([
+            {
+                "valueType": 80,
+            },
+            {
+                "value": 4,
+                "valueType": 33,
+            },
+            {
+                "valueType": 80,
+            },
+        ]);
+        expect(builder.foot()).toBe(4);
+        const buf = new Uint8Array([80, 33, 4, 80]);
+        const length = builder.comp(buf, 0);
+        expect(length).toBe(4);
+        expect(buf).toEqual(new Uint8Array([80, 33, 4, 80]));
+    });
+    it('strings', () => {
+        const builder = createBuilder();
+        const qbf = 'the quick brown fox jumps over the lazy dog';
+        const qbfLength = qbf.length;
+        const tmas = 'tell me another story';
+        const tmasLength = tmas.length;
+        builder.s(qbf).s(tmas);
+        expect(builder.peek()).toEqual([
+            {
+                valueType: 17,
+                value: new Uint8Array([
+                    116, 104, 101, 32, 113, 117, 105, 99,
+                    107, 32, 98, 114, 111, 119, 110, 32,
+                    102, 111, 120, 32, 106, 117, 109, 112,
+                    115, 32, 111, 118, 101, 114, 32, 116,
+                    104, 101, 32, 108, 97, 122, 121, 32,
+                    100, 111, 103 // 8x5+3 = 43
+                ])
+            },
+            {
+                valueType: 17,
+                value: new Uint8Array([
+                    116, 101, 108, 108, 32, 109,
+                    101, 32, 97, 110, 111, 116,
+                    104, 101, 114, 32, 115, 116,
+                    111, 114, 121 // 3*6 + 3 = 21
+                ])
+            }
+        ])
+        console.log(builder.peek());
+        expect(builder.foot()).toBe(68)
+        expect(builder.foot()).toBe(68);
+        const footPrintQbf = qbfLength + 1 + 1;
+        const footPrintTmas = tmasLength + 1 + 1;
+        expect(footPrintQbf + footPrintTmas).toBe(68);
+        const ubuf = new Uint8Array(68);
+        builder.comp(ubuf, 0);
+        expect(ubuf).toEqual([
+            // string 1
+            17, 43, 116, 104, 101, 32, 113, 117, 105, 99, 107,
+            32, 98, 114, 111, 119, 110, 32, 102, 111, 120, 32,
+            106, 117, 109, 112, 115, 32, 111, 118, 101, 114, 32,
+            116, 104, 101, 32, 108, 97, 122, 121, 32, 100, 111,
+            103,
+            // string 2
+            17, 21, 116, 101, 108, 108, 32, 109, 101, 32,
+            97, 110, 111, 116, 104, 101, 114, 32, 115, 116, 111,
+            114, 121
+        ]);
     });
 });
