@@ -1,6 +1,29 @@
 # RenderPipeline
 
-base types
+iod types (namespace oid)
+
+This part of the code is presponsive for framing a binary payload for transport, it basically contains routing info, to what "function" to call, with the payload
+also optionally there should be return oid for a response (could be the same oid sequence with an additional fragment oid at the very end)
+
+example
+
+1.2.3.[0.r1.r2.r3]<size><payload> // call function xyz (optional return payload to r1.r2.r3) zero '0' is just a divider and never uses as an oid fragment.
+r1.r2.r3<size><return-payload> // function xyz return package since size is never 0 (even if the return is "void", it is still wrapped in a payload signalling "void").
+
+function taking no arguments and no returns (typical side effects function)
+
+1.2.3<size=0>
+
+function taking no arguments but returns
+
+1.2.3.0.r1.r2<size=0>
+r1.r2<size><return-payload>
+
+needs oid start type
+size type
+payload is just wrapped sequence of bas- types (see below).
+
+base types (namespace base)
 * null 0x00 
 * null + payload 0x01
 * string 0x10 (0 last nibble means empty string) 0x11-0x14, so if 4 means 32bit twos complement (max size2.1 Gig)
