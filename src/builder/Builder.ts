@@ -18,6 +18,8 @@ export default function createBuilder() {
 
     function clear() {
         instructions.splice(0);
+        inNullPayloadMode = false;
+        inObjectPayloadMode = 0;
         return rc;
     }
 
@@ -41,17 +43,18 @@ export default function createBuilder() {
     }
 
     function storeNull(fn?: (builder: Builder) => void) {
+        if (inNullPayloadMode) {
+            clear();
+            throw new TypeError('"null payloads" cannot contain other nulls or "null payloads"');
+        }
         if (!fn) {
-            inNullPayloadMode = false;
             instructions.push({
                 valueType: 0x00,
             });
             return rc;
         }
 
-        if (inNullPayloadMode) {
-            throw new TypeError('"null payloads" cannot contain other "null payloads"');
-        }
+
         inNullPayloadMode = true;
         const beforeLastEntry = instructions.length - 1;
         fn(rc);
@@ -64,21 +67,24 @@ export default function createBuilder() {
             return rc;
         }
         // array is enlarged if copy moves a block forward
-        instructions.copyWithin(beforeLastEntry + 1, beforeLastEntry + 2);
+        instructions.length += 1;
+        instructions.copyWithin(beforeLastEntry + 2, beforeLastEntry + 1);
         instructions[beforeLastEntry + 1] = {
             valueType: 0x01,
         }
-
-        if (instructions[nextLastEntry].valueType !== 0x02) {
-            instructions[beforeLastEntry + 1] = {
-                valueType: 0x02,
-            }
-        }
+        // closure
+        instructions.push({
+            valueType: 0x02,
+        });
         inNullPayloadMode = false;
         return rc;
     }
 
+
     function storeObject(fn?: (builder: Builder) => void) {
+        instructions.push({
+            valueType: 0x80,
+        });
         if (!fn) {
             instructions.push({
                 valueType: 0x81,
@@ -88,6 +94,9 @@ export default function createBuilder() {
         inObjectPayloadMode += 1;
         fn(rc);
         inObjectPayloadMode -= 1;
+        instructions.push({
+            valueType: 0x81,
+        });
         return rc;
     }
 
@@ -95,6 +104,7 @@ export default function createBuilder() {
         const ubytes = encode(payload);
         const fp = intFootprint(ubytes.byteLength);
         if (fp > 4) {
+            clear();
             throw new RangeError('string length bigger then 2Gig');
         }
         instructions.push({
@@ -130,6 +140,7 @@ export default function createBuilder() {
     function storeUbyte(value: Uint8Array) {
         const fp = intFootprint(value.byteLength);
         if (fp > 4) {
+            clear();
             throw new RangeError('Uint8Array length bigger then 2Gig');
         }
         instructions.push({
@@ -191,6 +202,7 @@ export default function createBuilder() {
                     count += 1 + 8;
                     break;
                 default:
+                    clear();
                     throw new TypeError(`undefined type: ${JSON.stringify(command)}`);
             }
         }
@@ -225,6 +237,7 @@ export default function createBuilder() {
                 case 0x00:
                     advance.offsetForArguments += 1;
                     buffer[csr] = command.valueType;
+                    csr += 1;
                     break;
                 // string or ubyte
                 case 0x11:
@@ -282,8 +295,8 @@ export default function createBuilder() {
 
     function compileInit(
         buffer: Uint8Array,
-        offset: number,
-        advance: Advance,
+        offset = 0,
+        advance?: Advance,
     ): number {
         return compile(instructions, buffer, offset, advance);
     }
@@ -298,7 +311,7 @@ export default function createBuilder() {
         skip: storeSkip,
         buf: storeUbyte,
         obj: storeObject,
-        peek: getAllInstructions,
+        debug: getAllInstructions,
         foot: startFootPrint,
         comp: compileInit,
         clear: clear,

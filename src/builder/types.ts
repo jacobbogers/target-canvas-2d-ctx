@@ -93,9 +93,9 @@ export interface Builder {
     f64(n: number): Builder;
     skip(): Builder;
     buf(v: Uint8Array): Builder;
-    obj(fn: (builder: Builder) => void): Builder;
-    peek(): InputArguments[];
+    obj(fn?: (builder: Builder) => void): Builder;
+    debug(): InputArguments[];
     foot(): number;
-    comp(buffer: Uint8Array, offset: number, advance?: Advance): number;
+    comp(buffer: Uint8Array, offset?: number, advance?: Advance): number;
     clear(): Builder;
 }
