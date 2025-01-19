@@ -25,7 +25,8 @@ payload is just wrapped sequence of bas- types (see below).
 
 base types (namespace base)
 * null 0x00 
-* null + payload 0x01
+* null + payload start 0x01
+* null + payload end 0x02
 * string 0x10 (0 last nibble means empty string) 0x11-0x14, so if 4 means 32bit twos complement (max size2.1 Gig)
 * int8 0x21
 * int16  0x22

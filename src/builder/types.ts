@@ -5,14 +5,17 @@ export type NullArgument = {
 };
 
 export type NullWithPayloadArgumentValue = Exclude<
-    Exclude<InputArguments, NullWithPayloadArgument>,
+    Exclude<InputArguments, NullWithPayloadArgumentStart>,
     NullArgument
 >;
 
-export type NullWithPayloadArgument = {
+export type NullWithPayloadArgumentStart = {
     valueType: 0x01;
-    value: NullWithPayloadArgumentValue[];
 };
+
+export type NullWithPayloadArgumentEnd = {
+    valueType: 0x02;
+}
 
 export type StringValuetype = 0x11 | 0x12 | 0x13 | 0x14;
 
@@ -61,7 +64,6 @@ export type ObjectArgumentEnd = {
 
 export type ObjectArgumentStart = {
     valueType: 0x80;
-    value: [...InputArguments[], ObjectArgumentEnd];
 };
 
 export type InputArguments =
@@ -72,17 +74,18 @@ export type InputArguments =
     | FloatArgument
     | BoolArgument
     | NullArgument
-    | NullWithPayloadArgument
+    | NullWithPayloadArgumentStart
+    | NullWithPayloadArgumentEnd
     | IntArgument
     | StringArgument;
 
 export type InputArgumentsSansNullPayload = Exclude<
-    Exclude<InputArguments, NullWithPayloadArgument>,
+    Exclude<InputArguments, NullWithPayloadArgumentStart>,
     NullArgument
 >;
 
 export interface Builder {
-    n(payload?: InputArgumentsSansNullPayload[]): Builder;
+    n(fn?: (builder: Builder) => void): Builder;
     s(s: string): Builder;
     i(v: number): Builder;
     b(b: boolean): Builder;
@@ -90,7 +93,7 @@ export interface Builder {
     f64(n: number): Builder;
     skip(): Builder;
     buf(v: Uint8Array): Builder;
-    obj(payload: InputArguments[]): Builder;
+    obj(fn: (builder: Builder) => void): Builder;
     peek(): InputArguments[];
     foot(): number;
     comp(buffer: Uint8Array, offset: number, advance?: Advance): number;

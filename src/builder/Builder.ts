@@ -4,12 +4,8 @@ import type {
     Builder,
     FloatArgument,
     InputArguments,
-    InputArgumentsSansNullPayload,
     IntArgument,
     IntValueType,
-    NullArgument,
-    NullWithPayloadArgument,
-    ObjectArgumentStart,
     StringValuetype,
     UbyteValueType,
 } from './types';
@@ -17,6 +13,8 @@ import { intFootprint, setFloat32, setFloat64, setInt } from './helpers';
 
 export default function createBuilder() {
     const instructions: InputArguments[] = [];
+    let inNullPayloadMode = false; // cannot nest nullWithPayloadArguments so its only true or false
+    let inObjectPayloadMode = 0; // you can have multiple levels of nested object hence this is a counter
 
     function clear() {
         instructions.splice(0);
@@ -42,25 +40,54 @@ export default function createBuilder() {
         return rc;
     }
 
-    function storeNull(payload?: InputArgumentsSansNullPayload[]) {
-        const input: NullArgument | NullWithPayloadArgument = payload
-            ? {
-                valueType: 0x01,
-                value: payload,
-            }
-            : {
+    function storeNull(fn?: (builder: Builder) => void) {
+        if (!fn) {
+            inNullPayloadMode = false;
+            instructions.push({
                 valueType: 0x00,
-            };
-        instructions.push(input);
+            });
+            return rc;
+        }
+
+        if (inNullPayloadMode) {
+            throw new TypeError('"null payloads" cannot contain other "null payloads"');
+        }
+        inNullPayloadMode = true;
+        const beforeLastEntry = instructions.length - 1;
+        fn(rc);
+        const nextLastEntry = instructions.length - 1;
+        if (beforeLastEntry === nextLastEntry) { // nothing was added so this is just a null without a payload
+            instructions.push({
+                valueType: 0x00,
+            });
+            inNullPayloadMode = false;
+            return rc;
+        }
+        // array is enlarged if copy moves a block forward
+        instructions.copyWithin(beforeLastEntry + 1, beforeLastEntry + 2);
+        instructions[beforeLastEntry + 1] = {
+            valueType: 0x01,
+        }
+
+        if (instructions[nextLastEntry].valueType !== 0x02) {
+            instructions[beforeLastEntry + 1] = {
+                valueType: 0x02,
+            }
+        }
+        inNullPayloadMode = false;
         return rc;
     }
 
-    function storeObject(payload: InputArguments[]) {
-        const input: ObjectArgumentStart = {
-            valueType: 0x80,
-            value: [...payload, { valueType: 0x81 }],
-        };
-        instructions.push(input);
+    function storeObject(fn?: (builder: Builder) => void) {
+        if (!fn) {
+            instructions.push({
+                valueType: 0x81,
+            });
+            return rc;
+        }
+        inObjectPayloadMode += 1;
+        fn(rc);
+        inObjectPayloadMode -= 1;
         return rc;
     }
 
@@ -122,13 +149,13 @@ export default function createBuilder() {
             const command = commands[i];
             switch (command.valueType) {
                 case 0x80:
-                    count += 1 + footPrint(command.value);
-                    break;
-                case 0x00:
+                case 0x81:
                     count += 1;
                     break;
+                case 0x00:
                 case 0x01:
-                    count += 1 + footPrint(command.value);
+                case 0x02:
+                    count += 1;
                     break;
                 // string or ubyte
                 case 0x11:
@@ -187,21 +214,17 @@ export default function createBuilder() {
         for (let i = 0; i < commands.length; i++) {
             const command = commands[i];
             switch (command.valueType) {
+                case 0x81:
                 case 0x80:
-                    buffer[csr] = 0x80;
+                    buffer[csr] = command.valueType;
                     advance.offsetForArguments += 1;
                     csr += 1;
-                    csr += compile(command.value, buffer, csr, advance);
                     break;
+                case 0x02:
+                case 0x01:
                 case 0x00:
                     advance.offsetForArguments += 1;
-                    buffer[csr] = 0x00;
-                    break;
-                case 0x01:
-                    buffer[csr] = 0x01;
-                    advance.offsetForArguments += 1;
-                    csr += 1;
-                    csr += compile(command.value, buffer, csr, advance);
+                    buffer[csr] = command.valueType;
                     break;
                 // string or ubyte
                 case 0x11:
