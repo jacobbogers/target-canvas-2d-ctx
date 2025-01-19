@@ -84,6 +84,18 @@ export type InputArgumentsSansNullPayload = Exclude<
     NullArgument
 >;
 
+
+export type NonZeroDigit = '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9';
+export type Digit = '0' | NonZeroDigit;
+
+export type ThreeDigitNumber = `${Digit}${Digit}`;
+
+
+export type UpToThreeDigitNumber =
+    | `${Digit}`
+    | `${NonZeroDigit}${Digit}`
+
+
 export interface Builder {
     n(fn?: (builder: Builder) => void): Builder;
     s(s: string): Builder;
@@ -98,4 +110,23 @@ export interface Builder {
     foot(): number;
     comp(buffer: Uint8Array, offset?: number, advance?: Advance): number;
     clear(): Builder;
+    oid(d: UpToThreeDigitNumber[]): Builder;
 }
+
+export type Terminals = null | number | boolean | string | Uint8Array;
+export type Structure = Array<Terminals>;
+export type IndexDataType = Structure | Terminals;
+export type Scope = 'null' | 'sequence';
+
+export interface IndexedHandler {
+    //scan(data: Uint8Array, offset?: number, maxlength?: number, advance?: Advance): number;
+    enter: <T extends IndexDataType>(data: T, nesting: number, next: (stop?: boolean) => void) => void;
+    leave?: <T extends IndexDataType>(data: T, nesting: number, next: (stop?: boolean) => void) => void;
+
+}
+// Parent is structure (object or nullist)
+// Elt -> Elt -> Parent -> Elt
+//                  |
+//                  > Elt -> Elt -> Elt 
+//
+// 
