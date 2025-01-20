@@ -15,11 +15,17 @@ export default function createBuilder() {
     const instructions: InputArguments[] = [];
     let inNullPayloadMode = false; // cannot nest nullWithPayloadArguments so its only true or false
     let inObjectPayloadMode = 0; // you can have multiple levels of nested object hence this is a counter
+    // 0 = no oid this could be a fragment
+    // 1 = oid is used but not finalized, cant embed other oids
+    // 2 = oid is used and finalized
+    let iodMarked = 0; // 0 = no oid this could be a fragment
+
 
     function clear() {
         instructions.splice(0);
         inNullPayloadMode = false;
         inObjectPayloadMode = 0;
+        iodMarked = 0;
         return rc;
     }
 

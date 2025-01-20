@@ -5,18 +5,26 @@ iod types (namespace oid)
 This part of the code is presponsive for framing a binary payload for transport, it basically contains routing info, to what "function" to call, with the payload
 also optionally there should be return oid for a response (could be the same oid sequence with an additional fragment oid at the very end)
 
-example
+example:
 
-oid:lengthoid:1.2.3.[0.r1.r2.r3]<size><payload> // call function xyz (optional return payload to r1.r2.r3) zero '0' is just a divider and never uses as an oid fragment.
+Note: I am running out of length embedded types, so need to followup a type with explicit number value to donate
+length value
+  
+oid-type|int-length of total oid sequence|oid-sequence[|0.oid return sequence]|int-length of payload sequence|<payload>
+
+Index is a double linked list (slabby) showing hierarchy and order of the types mimiced in js
+
+oid:lengthoid:c1.c2.c3.[0.r1.r2.r3]<size><payload> // call function xyz (optional return payload to r1.r2.r3) zero '0' is just a divider and never uses as an oid fragment.
+
 oid:lengthOid:r1.r2.r3<size><return-payload> // function xyz return package since size is never 0 (even if the return is "void", it is still wrapped in a payload signalling "void").
 
 function taking no arguments and no returns (typical side effects function)
 
-1.2.3<size=0>
+c1.c2.c3<size=0>
 
 function taking no arguments but returns
 
-1.2.3.0.r1.r2<size=0>
+c1.c2.c3.0.r1.r2<size=0>
 r1.r2<size><return-payload>
 
 needs oid start type

@@ -1,5 +1,13 @@
 import type { Advance } from '../types';
 
+export type OIDArgument = {
+    valueType: 0x03; // start Oid sequence,
+    value: {
+        call: Uint8Array; // oid sequence
+        response?: Uint8Array;
+    }
+}
+
 export type NullArgument = {
     valueType: 0x00;
 };
@@ -67,6 +75,7 @@ export type ObjectArgumentStart = {
 };
 
 export type InputArguments =
+    | OIDArgument
     | ObjectArgumentStart
     | ObjectArgumentEnd
     | UbyteArgument
