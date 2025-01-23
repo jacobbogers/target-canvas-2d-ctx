@@ -2,10 +2,6 @@ import type { Advance } from '../types';
 
 export type OIDArgument = {
     valueType: 0x03; // start Oid sequence,
-    value: {
-        call: Uint8Array; // oid sequence
-        response?: Uint8Array;
-    }
 }
 
 export type NullArgument = {
@@ -120,7 +116,8 @@ export interface Builder {
     foot(): number;
     comp(buffer: Uint8Array, offset?: number, advance?: Advance): number;
     clear(): Builder;
-    oid: (...d: UpToThreeDigitNumber[]) => (fn: (b: Builder) => void) => Builder;
+    oid: (...d: UpToThreeDigitNumber[]) => Builder;
+    endOid: () => Builder;
 }
 
 export type Terminals = null | number | boolean | string | Uint8Array;
@@ -137,6 +134,6 @@ export interface IndexedHandler {
 // Parent is structure (object or nullist)
 // Elt -> Elt -> Parent -> Elt
 //                  |
-//                  > Elt -> Elt -> Elt 
+//                  > Elt -> Elt -> Elt
 //
 // 

@@ -8,6 +8,7 @@ import type {
     IntValueType,
     StringValuetype,
     UbyteValueType,
+    UpToThreeDigitNumber,
 } from './types';
 import { intFootprint, setFloat32, setFloat64, setInt } from './helpers';
 
@@ -19,6 +20,7 @@ export default function createBuilder() {
     // 1 = oid is used but not finalized, cant embed other oids
     // 2 = oid is used and finalized
     let iodMarked = 0; // 0 = no oid this could be a fragment
+    // oid mode
 
 
     function clear() {
@@ -307,6 +309,51 @@ export default function createBuilder() {
         return compile(instructions, buffer, offset, advance);
     }
 
+    // 0 = no oid this could be a fragment
+    // 1 = oid is used but not finalized, cant embed other oids
+    // 2 = oid is used and finalized
+    function createOid(...oids: UpToThreeDigitNumber[]): Builder {
+        if (oids.length === 0) {
+            throw new TypeError('No oid specified');
+        }
+        if (iodMarked === 1) {
+            throw new TypeError('Oid body not finalized, cannot embed other oid\'s');
+        }
+        clear();
+        iodMarked = 1;
+        // typecast to number
+        const oidsAsInts = oids.map(Number.parseInt);
+        // is there a return oid
+        const idx = oidsAsInts.indexOf(0);
+        const call = idx < 0 ? oidsAsInts.slice(0) : oidsAsInts.splice(0, idx);
+        const response = idx < 0 ? [] : oidsAsInts.slice(idx + 1);
+
+        const totalSize = call.length + response.length + 1;
+        instructions.push({
+            valueType: 0x03,
+        });
+
+        storeUbyte(Uint8Array.from(call));
+        if (response.length) {
+            storeUbyte(Uint8Array.from(response));
+        }
+        return storeInt(0); // marker for bodysize, to be changed later
+    }
+
+    function endOid(): Builder {
+        if (iodMarked === 0) {
+            throw new Error('Trying to end an Oid body without starting one');
+        }
+        if (iodMarked === 2) {
+            throw new Error('Oid Body already ended');
+        }
+        iodMarked = 2;
+        const firstInt = instructions.findIndex(command => (command.valueType & 0xf0) === 0x20);
+        const fp = footPrint(instructions.slice(firstInt + 1));
+        (instructions[firstInt] as IntArgument).value = fp;
+        return rc;
+    }
+
     const map = {
         n: storeNull,
         i: storeInt,
@@ -321,11 +368,18 @@ export default function createBuilder() {
         foot: startFootPrint,
         comp: compileInit,
         clear: clear,
+        oid: createOid,
+        end: endOid
     };
 
     // function names
     const handler: ProxyHandler<Record<never, never>> = {
         get(target, p: keyof typeof map, receiver) {
+            if (iodMarked === 2) {
+                if (['debug', 'foot', 'comp', 'clear', 'oid'].indexOf(p) < 0) {
+                    throw new TypeError('oid is finalized, only "clear", "comp", "foot", debug" and "oid" are allowed')
+                }
+            }
             return map[p];
         },
     };
