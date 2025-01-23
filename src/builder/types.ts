@@ -93,16 +93,17 @@ export type InputArgumentsSansNullPayload = Exclude<
     NullArgument
 >;
 
-
-export type NonZeroDigit = '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9';
+export type UpToTwo = '1' | '2';
+export type UpToFour = UpToTwo | '3' | '4';
+export type UptoFive = UpToFour | '5'
+export type NonZeroDigit = UptoFive | '6' | '7' | '8' | '9';
 export type Digit = '0' | NonZeroDigit;
-
-export type ThreeDigitNumber = `${Digit}${Digit}`;
-
 
 export type UpToThreeDigitNumber =
     | `${Digit}`
     | `${NonZeroDigit}${Digit}`
+    | `${UpToTwo}${UpToFour}${Digit}`
+    | `${UpToTwo}${UptoFive}${UptoFive}`
 
 
 export interface Builder {
@@ -119,7 +120,7 @@ export interface Builder {
     foot(): number;
     comp(buffer: Uint8Array, offset?: number, advance?: Advance): number;
     clear(): Builder;
-    oid(d: UpToThreeDigitNumber[]): Builder;
+    oid: (...d: UpToThreeDigitNumber[]) => (fn: (b: Builder) => void) => Builder;
 }
 
 export type Terminals = null | number | boolean | string | Uint8Array;
