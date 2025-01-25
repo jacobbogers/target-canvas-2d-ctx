@@ -1,14 +1,16 @@
-import type { Advance } from '../types';
+import type {
+	Advance,
+	IntValueType,
+	StringValuetype,
+	UbyteValueType,
+} from '../types';
 import { encode } from '../helpers';
 import type {
 	Builder,
 	FloatArgument,
 	InputArguments,
 	IntArgument,
-	IntValueType,
-	StringValuetype,
 	UbyteArgument,
-	UbyteValueType,
 	UpToThreeDigitNumberString,
 } from './types';
 import { intFootprint, setFloat32, setFloat64, setInt } from './helpers';
