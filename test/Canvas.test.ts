@@ -116,7 +116,7 @@ describe.skip('Canvas-base', () => {
 		const byteLength =
 			1 /*for type*/ +
 			lengthDescr /*for length*/ +
-			imagePNG.byteLength /*for value*/;
+			imagePNG.byteLength; /*for value*/
 		// we have 1st size calculated, 2nd argument is optional (needs 0x50 byte)
 		const intr = new Uint8Array(byteLength + 1 /* for 0x50 */);
 		intr[0] = 0x10;

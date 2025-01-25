@@ -50,8 +50,8 @@ export function setInt(
 	const p =
 		u < 0
 			? // u = max2Compl - p
-			// p = max2Compl - u
-			maxPositiveTwosComplement + u
+				// p = max2Compl - u
+				maxPositiveTwosComplement + u
 			: u;
 	// bit shifting with ints bigger then 32 bits is not possible in js
 	buffer[offset] = type + fp;
@@ -83,7 +83,6 @@ export function getInt(
 	advance.offsetForReturnArguments += 1 + footPrint;
 	return max2Compl > answer ? answer : max2Compl - answer;
 }
-
 
 export function createLedger(): Advance {
 	return { offsetForArguments: 0, offsetForReturnArguments: 0 };

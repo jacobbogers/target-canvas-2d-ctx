@@ -130,7 +130,7 @@ export default class TargetCanvas {
 					1 +
 					(getLength(dataForSet, cursor + 2) as number);
 				const willReadFrequently = getBool(dataForSet, cursor + 3);
-				advance.offsetForReturnArguments += 3 /* for booleans */;
+				advance.offsetForReturnArguments += 3; /* for booleans */
 				ctxSettings = { alpha, desynchronized, colorSpace, willReadFrequently };
 			}
 		}
