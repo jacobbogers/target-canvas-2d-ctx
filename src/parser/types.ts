@@ -22,9 +22,7 @@ export type RedactedTypes =
 	| FloatRedactedType
 	| UbyteRedactedType;
 
-export type AllBinTypes =
-	NonRedactedTypes
-	| RedactedTypes;
+export type AllBinTypes = NonRedactedTypes | RedactedTypes;
 
 export type ASTWalkerOptions = {
 	retainParents: boolean;
