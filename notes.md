@@ -31,6 +31,13 @@ needs oid start type
 size type
 payload is just wrapped sequence of bas- types (see below).
 
+rules:
+1. function with no forward paylaod or return payload  (like function doit(): void; )
+2. function with forward payload but no return (like function(a:number, b: string): void)
+3. function with no forward payload but has return payload (like function(): string )
+4. function with forward payload AND return payload (like function(a: number): string)
+ 
+
 base types (namespace base)
 * null 0x00 
 * null + payload start 0x01
