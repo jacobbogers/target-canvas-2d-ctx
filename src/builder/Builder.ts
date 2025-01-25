@@ -7,8 +7,9 @@ import type {
     IntArgument,
     IntValueType,
     StringValuetype,
+    UbyteArgument,
     UbyteValueType,
-    UpToThreeDigitNumber,
+    UpToThreeDigitNumberString,
 } from './types';
 import { intFootprint, setFloat32, setFloat64, setInt } from './helpers';
 
@@ -327,28 +328,39 @@ export default function createBuilder() {
         3. function with no forward payload but has return payload (like function(): string )
         4. function with forward payload AND return payload (like function(a: number): string)
     */
-    function createOid(...oids: UpToThreeDigitNumber[]): Builder {
-        if (oids.length === 0) {
-            throw new TypeError('No oid specified');
-        }
+    function createOid(...oids: UpToThreeDigitNumberString[]): Builder {
         if (iodMarked === true) {
             throw new TypeError('Oid body not finalized, cannot embed other oid\'s');
         }
-        clear();
+        if (oids.length === 0) {
+            throw new TypeError('No oid argument specified');
+        }
+        const oidsAsInts = oids.map(s => Number.parseInt(s, 10)).filter(Number.isFinite); // runtime protection for non ts coders
+        if (oidsAsInts.length === 0) {
+            throw new TypeError('oid valid arguments are STRINGS up to 3 digits (max "255") "0", "1", ..."255"');
+        }
         iodMarked = true;
         // typecast to number
-        const oidsAsInts = oids.map(Number.parseInt);
+
         // is there a return oid
         // multiple '0' values are possible but the first one is a devider
         const idx = oidsAsInts.indexOf(0);
-        const call = idx < 0 ? oidsAsInts.slice(0) : oidsAsInts.splice(0, idx);
+        const call = idx < 0 ? oidsAsInts.slice(0) : oidsAsInts.slice(0, idx);
         const response = idx < 0 ? [] : oidsAsInts.slice(idx + 1);
 
+        // they cannot both be zero length
+        if (call.length === 0 && response.length === 0) {
+            iodMarked = false;
+            throw new TypeError('specify a forward oid and/or backward oid')
+        }
         instructions.push({
             valueType: 0x03,
         });
         storeUbyte(Uint8Array.from(call));
         storeUbyte(Uint8Array.from(response));
+        if (call.length === 0) {
+            return endOid();
+        }
         return storeInt(0); // marker for bodysize, to be changed later
     }
 
@@ -358,6 +370,11 @@ export default function createBuilder() {
         }
         iodMarked = false;
         const lastOidUsedPos = instructions.findLastIndex(command => command.valueType === 0x03);
+        const callOid = instructions[lastOidUsedPos + 1] as UbyteArgument;
+        if (callOid.value.length === 0) {
+            // there is no payload
+            return rc;
+        }
         const fp = footPrint(instructions.slice(lastOidUsedPos + 4));
         (instructions[lastOidUsedPos + 3] as IntArgument).value = fp;
         return rc;
@@ -378,14 +395,22 @@ export default function createBuilder() {
         comp: compileInit,
         clear: clear,
         oid: createOid,
-        end: endOid
+        oidE: endOid
     };
 
+    type KeyOfMap = keyof typeof map;
+
+    const ctrlCommands: KeyOfMap[] = ['comp', 'clear', 'foot', 'debug'];
     // function names
     const handler: ProxyHandler<Record<never, never>> = {
-        get(target, p: keyof typeof map, receiver) {
+        get(target, p: KeyOfMap, receiver) {
+            const isCtrl = ctrlCommands.includes(p);
+            if (isCtrl && (inNullPayloadMode || inObjectPayloadMode)) {
+                const scope = inNullPayloadMode ? 'null' : 'object';
+                throw new TypeError(`in scope [${scope}] cannot use ${ctrlCommands.join()}`)
+            }
             return map[p];
-        },
+        }
     };
 
     const rc = new Proxy(Object.create(null), handler) as Builder;

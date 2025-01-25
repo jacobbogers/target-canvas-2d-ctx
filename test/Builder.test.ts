@@ -1,5 +1,6 @@
 import createBuilder from "../src/builder/Builder";
 import { createLedger } from "../src/builder/helpers";
+import type { UpToThreeDigitNumberString } from "../src/builder/types";
 import type { Advance } from "../src/types";
 import u8intFixture from './fixture/byte-buffer-fixtures';
 
@@ -278,6 +279,10 @@ describe('Builder', () => {
         expect(builder.comp(targetNested3)).toBe(6);
         expect(targetNested3).toEqual(new Uint8Array([128, 128, 129, 129, 128, 129]));
     });
+    it('obj does not allow for ctrl command', () => {
+        const bld = createBuilder();
+        expect(() => bld.obj(bld1 => bld.clear())).toThrow('in scope [object] cannot use comp,clear,foot,debug');
+    });
     it('nulls (exceptions)', async () => {
         const builder = createBuilder();
         const buf1 = u8intFixture.slice(3, 3 + 128);
@@ -331,5 +336,54 @@ describe('Builder', () => {
         }]);
         expect(builder.comp((onlyNullTarget))).toBe(1);
         expect(onlyNullTarget).toEqual(Uint8Array.from([0]));
+
+        const bld = createBuilder();
+        expect(() => bld.n(bld1 => bld.clear())).toThrow('in scope [null] cannot use comp,clear,foot,debug');
+    });
+    it('oid failures & edge cases', async () => {
+        const builder = createBuilder();
+        expect(() => builder.oid()).toThrow('No oid argument specified');
+        expect(() => builder.oid('' as UpToThreeDigitNumberString)).toThrow('oid valid arguments are STRINGS up to 3 digits (max "255") "0", "1", ..."255"');
+        expect(() => builder.clear().oid('1').oid('' as UpToThreeDigitNumberString)).toThrow('Oid body not finalized, cannot embed other oid\'s');
+        expect(() => builder.clear().oid('0')).toThrow('specify a forward oid and/or backward oid');
+        expect(() => builder.clear().oid('0', '0').oidE()).toThrow('Trying to end an Oid body without starting one');
+    });
+    it('oid', async () => {
+        const bld = createBuilder();
+        bld.b(true).oid('99', '126', '0', '0').s('0123456789ABCDEF').oidE()
+        expect(bld.debug()).toEqual([
+            { valueType: 48 }, // +1
+            { valueType: 3 },  // +1
+            { valueType: 97, value: Uint8Array.from([99, 126]) }, // +4
+            { valueType: 97, value: Uint8Array.from([0]) }, // +3
+            { value: 18, valueType: 33 }, // +2
+            {
+                valueType: 17, // + 2
+                value: Uint8Array.from([  // + 16
+                    48, 49, 50, 51, 52, 53,
+                    54, 55, 56, 57, 65, 66,
+                    67, 68, 69, 70
+                ])
+            }
+        ]);
+        const target = new Uint8Array(29);
+        expect(bld.comp(target)).toBe(29);
+        /*
+        Uint8Array(30) [                                                                                                                                                                             
+        +1    48, // boolean true
+        +1    3, // oid
+        +4    97,  2, 99, 126, // call
+        +3    97,  1,  0, // response                                                                                                                                                       
+        +2    33, 18, // size of payload  16 + 2 = 18
+        +2    17, 16, // udef + length = 2
+        +16    48,  49, 50, 51, 52, 53, 54, 55, 56, 57,  65, 66, 67, 68, 69, 70, // 16 bytes                                                                                                                                                                                 
+        ]  */
+        expect(target).toEqual(Uint8Array.from([
+            48, 3, 97, 2, 99, 126, 97, 1, 0,
+            33, 18, 17, 16, 48, 49, 50, 51, 52,
+            53, 54, 55, 56, 57, 65, 66, 67, 68,
+            69, 70
+        ]))
+        expect(bld.foot()).toBe(29);
     });
 });

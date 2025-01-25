@@ -89,18 +89,17 @@ export type InputArgumentsSansNullPayload = Exclude<
     NullArgument
 >;
 
-export type UpToTwo = '1' | '2';
-export type UpToFour = UpToTwo | '3' | '4';
-export type UptoFive = UpToFour | '5'
-export type NonZeroDigit = UptoFive | '6' | '7' | '8' | '9';
-export type Digit = '0' | NonZeroDigit;
+export type UpToTwo = 0 | 1 | 2;
+export type UpToFour = UpToTwo | 3 | 4;
+export type UptoFive = UpToFour | 5
+export type Digit = UptoFive | 6 | 7 | 8 | 9;
+export type NonZeroDigit = Exclude<Digit, 0>;
 
-export type UpToThreeDigitNumber =
+export type UpToThreeDigitNumberString =
     | `${Digit}`
     | `${NonZeroDigit}${Digit}`
     | `${UpToTwo}${UpToFour}${Digit}`
     | `${UpToTwo}${UptoFive}${UptoFive}`
-
 
 export interface Builder {
     n(fn?: (builder: Builder) => void): Builder;
@@ -116,8 +115,8 @@ export interface Builder {
     foot(): number;
     comp(buffer: Uint8Array, offset?: number, advance?: Advance): number;
     clear(): Builder;
-    oid: (...d: UpToThreeDigitNumber[]) => Builder;
-    endOid: () => Builder;
+    oid: (...d: UpToThreeDigitNumberString[]) => Builder;
+    oidE: () => Builder;
 }
 
 export type Terminals = null | number | boolean | string | Uint8Array;
