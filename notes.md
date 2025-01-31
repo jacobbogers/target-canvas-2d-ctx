@@ -44,7 +44,7 @@ base types (namespace base)
 * null + payload end 0x02
 
 * oid frame start = 0x03
-* oid frame end = 0x04 
+
 
 * string 0x10 (0 last nibble means empty string) 0x11-0x14, so if 4 means 32bit twos complement (max size2.1 Gig)
 

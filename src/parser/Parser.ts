@@ -1,4 +1,4 @@
-import type { Advance, AllBinTypes } from '../types';
+import type { AllBinTypes } from '../types';
 import { getType } from './helpers';
 import type { Parser } from './types';
 import {
@@ -19,25 +19,14 @@ import {
     ubyteRedactedTypeVal,
 } from './constants';
 
-export default function createParser(
-    buf: Uint8Array,
-    rootOffset: number,
-    rootEnd?: number,
-): Parser {
-    let parseStarted = true;
-    const csrEnd = rootEnd ?? buf.byteLength;
+export default function createParser(): Parser {
 
     function parseStart(
-        start: number,
-        end?: number,
-        advance: Advance = {
-            offsetForArguments: 0,
-            offsetForReturnArguments: 0,
-        },
+        data: Uint8Array, offset = 0, length = data.byteLength
     ): Parser {
-        let csr = start;
-        while (csr < csrEnd) {
-            const rawType = buf[csr];
+        let csr = offset;
+        while (csr < length) {
+            const rawType = data[csr];
             const binType = getType(rawType as AllBinTypes);
             // check first for non redacted types
             // after we check redacted types,
@@ -74,8 +63,10 @@ export default function createParser(
         return rc;
     }
 
+    // instruction map for the js Proxy object
     const map = {
         parse: parseStart,
+        walk: undefined,
     };
 
     type KeyOfMap = keyof typeof map;
