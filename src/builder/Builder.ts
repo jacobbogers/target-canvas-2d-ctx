@@ -10,10 +10,13 @@ import type {
 	FloatArgument,
 	InputArguments,
 	IntArgument,
+	NullArgument,
+	ObjectArgument,
 	UbyteArgument,
 	UpToThreeDigitNumberString,
 } from './types';
 import { intFootprint, setFloat32, setFloat64, setInt } from './helpers';
+import { isNull } from 'node:util';
 
 export default function createBuilder() {
 	const instructions: InputArguments[] = [];
@@ -52,65 +55,43 @@ export default function createBuilder() {
 		return rc;
 	}
 
+	// it is impossible to call this function when inNullPayloadMode = true,
+	// this prevents embedding a null struct into another null struct
 	function storeNull(fn?: (builder: Builder) => void) {
-		if (inNullPayloadMode) {
-			clear();
-			throw new TypeError(
-				'"null payloads" cannot contain other nulls or "null payloads"',
-			);
-		}
-		if (!fn) {
-			instructions.push({
-				valueType: 0x00,
-			});
-			return rc;
-		}
-
-		inNullPayloadMode = true;
-		const beforeLastEntry = instructions.length - 1;
-		fn(rc);
-		const nextLastEntry = instructions.length - 1;
-		if (beforeLastEntry === nextLastEntry) {
-			// nothing was added so this is just a null without a payload
-			instructions.push({
-				valueType: 0x00,
-			});
-			inNullPayloadMode = false;
-			return rc;
-		}
-		// array is enlarged if copy moves a block forward
-		instructions.length += 1;
-		instructions.copyWithin(beforeLastEntry + 2, beforeLastEntry + 1);
-		instructions[beforeLastEntry + 1] = {
-			valueType: 0x01,
+		const nullInstr: NullArgument = {
+			valueType: 0x00,
+			value: 0, // we dont know the value yet of the null body if any
 		};
-		// closure
-		instructions.push({
-			valueType: 0x02,
-		});
+		instructions.push(nullInstr);
+		if (!fn) { // no payload
+			return rc;
+		}
+		const beforeLastEntry = instructions.length - 1;
+		inNullPayloadMode = true;
+		fn(rc);
+		nullInstr.value = instructions.length - beforeLastEntry;
 		inNullPayloadMode = false;
 		return rc;
 	}
 
+	// storeObjects mode prevents command functions being called
 	function storeObject(fn?: (builder: Builder) => void) {
-		instructions.push({
+		const obj: ObjectArgument = {
 			valueType: 0x80,
-		});
+			value: 0,
+		};
+		instructions.push(obj);
 		if (!fn) {
-			instructions.push({
-				valueType: 0x81,
-			});
 			return rc;
 		}
 		inObjectPayloadMode += 1;
+		const beforeLastEntry = instructions.length - 1;
 		fn(rc);
 		inObjectPayloadMode -= 1;
-		instructions.push({
-			valueType: 0x81,
-		});
+		beforeLastEntry === instructions.length - beforeLastEntry
 		return rc;
 	}
-
+	// store strings
 	function storeString(payload: string) {
 		const ubytes = encode(payload);
 		const fp = intFootprint(ubytes.byteLength);
@@ -324,12 +305,12 @@ export default function createBuilder() {
 	// 1 = oid is used but not finalized, cant embed other oids
 	// 2 = oid is used and finalized
 	/*
-    rules:
-        1. function with no forward paylaod or return payload  (like function doit(): void; )
-        2. function with forward payload but no return (like function(a:number, b: string): void)
-        3. function with no forward payload but has return payload (like function(): string )
-        4. function with forward payload AND return payload (like function(a: number): string)
-    */
+	rules:
+		1. function with no forward paylaod or return payload  (like function doit(): void; )
+		2. function with forward payload but no return (like function(a:number, b: string): void)
+		3. function with no forward payload but has return payload (like function(): string )
+		4. function with forward payload AND return payload (like function(a: number): string)
+	*/
 	function createOid(...oids: UpToThreeDigitNumberString[]): Builder {
 		if (iodMarked === true) {
 			throw new TypeError("Oid body not finalized, cannot embed other oid's");
@@ -406,20 +387,49 @@ export default function createBuilder() {
 		oidE: endOid,
 	};
 
-	type KeyOfMap = keyof typeof map;
+	const mapWhenNull = {
+		i: storeInt,
+		s: storeString,
+		b: storeBool,
+		f32: storeFloat32,
+		f64: storeFloat64,
+		skip: storeSkip,
+		buf: storeUbyte,
+		obj: storeObject,
+		debug: getAllInstructions,
+		oid: createOid,
+		oidE: endOid,
+	}
 
-	const ctrlCommands: KeyOfMap[] = ['comp', 'clear', 'foot', 'debug'];
+	const mapNoCommands = {
+		n: storeNull,
+		i: storeInt,
+		s: storeString,
+		b: storeBool,
+		f32: storeFloat32,
+		f64: storeFloat64,
+		skip: storeSkip,
+		buf: storeUbyte,
+		obj: storeObject,
+		debug: getAllInstructions,
+		oid: createOid,
+		oidE: endOid,
+	};
+
+	type KeyOfMap = keyof typeof map;
+	type KeyOfmapWhenNull = keyof typeof mapWhenNull;
+	type KeyOfmapNoCommands = keyof typeof mapNoCommands;
+
 	// function names
 	const handler: ProxyHandler<Record<never, never>> = {
-		get(target, p: KeyOfMap, receiver) {
-			const isCtrl = ctrlCommands.includes(p);
-			if (isCtrl && (inNullPayloadMode || inObjectPayloadMode)) {
-				const scope = inNullPayloadMode ? 'null' : 'object';
-				throw new TypeError(
-					`in scope [${scope}] cannot use ${ctrlCommands.join()}`,
-				);
+		get(target, p: unknown, receiver) {
+			if (inNullPayloadMode) {
+				return mapWhenNull[p as KeyOfmapWhenNull];
 			}
-			return map[p];
+			if (inObjectPayloadMode) {
+				return mapNoCommands[p as KeyOfmapNoCommands];
+			}
+			return map[p as KeyOfMap];
 		},
 	};
 

@@ -3,9 +3,7 @@ import type {
 	BoolType,
 	FloatType,
 	IntValueType,
-	NullSansPayloadType,
-	NullWithPayloadEndType,
-	NullWithPayloadStartType,
+	NullType,
 	OIDType,
 	OptionalType,
 	SequenceEndType,
@@ -16,24 +14,14 @@ import type {
 
 export type OIDArgument = {
 	valueType: OIDType;
+	value: number; // length of the OID in binary
 };
 
 export type NullArgument = {
-	valueType: NullSansPayloadType;
+	valueType: NullType;
+	value: number; // length of the payload in binary
 };
 
-export type NullWithPayloadArgumentValue = Exclude<
-	Exclude<InputArguments, NullWithPayloadArgumentStart>,
-	NullArgument
->;
-
-export type NullWithPayloadArgumentStart = {
-	valueType: NullWithPayloadStartType;
-};
-
-export type NullWithPayloadArgumentEnd = {
-	valueType: NullWithPayloadEndType;
-};
 
 export type StringArgument = {
 	valueType: StringValuetype;
@@ -70,32 +58,21 @@ export type UbyteArgument = {
 	value: Uint8Array;
 };
 
-export type ObjectArgumentStart = {
+export type ObjectArgument = {
 	valueType: SequenceStartType;
-};
-
-export type ObjectArgumentEnd = {
-	valueType: SequenceEndType;
+	value: number;
 };
 
 export type InputArguments =
 	| OIDArgument
-	| ObjectArgumentStart
-	| ObjectArgumentEnd
+	| ObjectArgument
 	| UbyteArgument
 	| OptionalArgument
 	| FloatArgument
 	| BoolArgument
 	| NullArgument
-	| NullWithPayloadArgumentStart
-	| NullWithPayloadArgumentEnd
 	| IntArgument
 	| StringArgument;
-
-export type InputArgumentsSansNullPayload = Exclude<
-	Exclude<InputArguments, NullWithPayloadArgumentStart>,
-	NullArgument
->;
 
 export type UpToTwo = 0 | 1 | 2;
 export type UpToFour = UpToTwo | 3 | 4;

@@ -36,7 +36,7 @@ export function setFloat64(
 }
 
 export function setInt(
-	type: 0x20 | 0x10 | 0x60,
+	type: 0x00 | 0x20 | 0x10 | 0x60 | 0x80 | 0x88,
 	u: number,
 	buffer: Uint8Array,
 	offset: number,
@@ -50,8 +50,8 @@ export function setInt(
 	const p =
 		u < 0
 			? // u = max2Compl - p
-				// p = max2Compl - u
-				maxPositiveTwosComplement + u
+			// p = max2Compl - u
+			maxPositiveTwosComplement + u
 			: u;
 	// bit shifting with ints bigger then 32 bits is not possible in js
 	buffer[offset] = type + fp;

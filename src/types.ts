@@ -4,18 +4,14 @@ export type Advance = {
 };
 
 export type OIDType = 0x03;
-export type NullSansPayloadType = 0x00;
-export type NullWithPayloadStartType = 0x01;
-export type NullWithPayloadEndType = 0x02;
+export type NullType = 0x00;
 export type OptionalType = 0x50;
 export type SequenceStartType = 0x80;
 export type SequenceEndType = 0x81;
 
 export type NonRedactedTypes =
 	| OIDType
-	| NullSansPayloadType
-	| NullWithPayloadStartType
-	| NullWithPayloadEndType
+	| NullType
 	| OptionalType
 	| SequenceStartType
 	| SequenceEndType;
@@ -28,9 +24,7 @@ export type UbyteValueType = 0x61 | 0x62 | 0x63 | 0x64;
 
 export type AllBinTypes =
 	| OIDType
-	| NullSansPayloadType
-	| NullWithPayloadStartType
-	| NullWithPayloadEndType
+	| NullType
 	| StringValuetype
 	| IntValueType
 	| BoolType
