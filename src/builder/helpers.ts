@@ -2,6 +2,9 @@ import type { Advance } from '../types';
 
 // ints are always stored 2's complement so need to add one 1 bit extra for footprint
 export function intFootprint(u: number): number {
+	if (u === 0) {
+		return 0;
+	}
 	if (Math.trunc(u) === 0) {
 		return 1;
 	}

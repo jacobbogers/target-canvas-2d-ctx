@@ -6,8 +6,7 @@ import type {
 	NullType,
 	OIDType,
 	OptionalType,
-	SequenceEndType,
-	SequenceStartType,
+	SequenceType,
 	StringValuetype,
 	UbyteValueType,
 } from '../types';
@@ -59,7 +58,7 @@ export type UbyteArgument = {
 };
 
 export type ObjectArgument = {
-	valueType: SequenceStartType;
+	valueType: SequenceType;
 	value: number;
 };
 
