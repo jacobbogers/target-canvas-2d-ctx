@@ -352,21 +352,36 @@ export default function createBuilder() {
 		oid: callOid,
 	};
 
-
 	type KeyOfMap = keyof typeof map;
+
+	function isBlocked(command: KeyOfMap) {
+		const blockList: Partial<Record<KeyOfMap, boolean>> = {};
+		if (inNullPayloadMode) {
+			blockList.n = true;
+		}
+		if (iodMarked) {
+			blockList.oid = true;
+		}
+		if (inNullPayloadMode || inObjectPayloadMode || iodMarked) {
+			blockList.clear = true;
+			blockList.comp = true;
+			blockList.foot = true;
+		}
+		if (command in blockList) {
+			return true;
+		}
+		return false;
+	}
+
+
+
 	// function names
 	const handler: ProxyHandler<Record<never, never>> = {
-		get(target, p: unknown, receiver) {
-			const localMap = structuredClone(map);
-			if (inNullPayloadMode) {
-				delete localMap.debug;
-
-				return mapWhenNull[p as KeyOfmapWhenNull];
+		get(target, p: KeyOfMap, receiver) {
+			if (isBlocked(p)) {
+				return undefined;
 			}
-			if (inObjectPayloadMode) {
-				return mapStructureCommands[p as KeyOfmapNoCommands];
-			}
-			return map[p as KeyOfMap];
+			return map[p];
 		},
 	};
 
