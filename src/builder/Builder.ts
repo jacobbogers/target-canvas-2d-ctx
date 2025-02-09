@@ -57,15 +57,14 @@ export default function createBuilder() {
 	function storeNull(fn?: (builder: Builder) => void) {
 		const nullInstr: NullArgument = {
 			valueType: 0x00,
-			value: 0, // we dont know the value yet of the null body if any
+			value: 0,
 		};
 		instructions.push(nullInstr);
-		if (!fn) { // no payload
-			return rc;
-		}
 		const beforeLastEntry = instructions.length - 1;
 		inNullPayloadMode = true;
-		fn(rc);
+		if (fn) { // no payload
+			fn(rc);
+		}
 		nullInstr.value = instructions.length - beforeLastEntry;
 		inNullPayloadMode = false;
 		return rc;
@@ -78,12 +77,11 @@ export default function createBuilder() {
 			value: 0,
 		};
 		instructions.push(obj);
-		if (!fn) {
-			return rc;
-		}
 		inObjectPayloadMode += 1;
 		const beforeLastEntry = instructions.length - 1;
-		fn(rc);
+		if (fn) {
+			fn(rc);
+		}
 		inObjectPayloadMode -= 1;
 		obj.value = instructions.length - beforeLastEntry
 		return rc;
@@ -224,13 +222,14 @@ export default function createBuilder() {
 				case 0x80:
 				case 0x00:
 					{
-						const fp = footPrint(commands.slice(i + 1, i + command.value));
+						const fragment = commands.slice(i + 1, i + command.value)
+						const fp = footPrint(fragment);
 						const fpInt = intFootprint(fp);
 						setInt(command.valueType, fp, buffer, csr, advance);
-						const byteswritten = compile(commands.slice(i + 1, i + command.value), buffer, csr + fpInt, advance);
-						const structSize = 1 + fpInt + byteswritten;
-						byteCount += structSize;
-						csr += 1 + structSize;
+						csr += fpInt + 1;
+						const newCursorPos = compile(fragment, buffer, csr, advance);
+						csr = newCursorPos;
+						i += 1 + command.value;
 					}
 					break;
 				case 0x31:
@@ -245,8 +244,12 @@ export default function createBuilder() {
 				case 0x60:
 				case 0x10:
 					{
+						// sum of type and length value
 						const intBytes = setInt(command.valueType, command.value.byteLength, buffer, csr, advance);
-						buffer.set(command.value, csr + intBytes);
+						if (intBytes > 1) {
+							buffer.set(command.value, csr + intBytes);
+							advance.offsetForArguments += command.value.byteLength;
+						}
 						csr += command.value.byteLength + intBytes;
 						i++;
 					}
@@ -260,7 +263,7 @@ export default function createBuilder() {
 				case 0x50:
 					buffer[csr] = 0x50;
 					csr += 1;
-					advance.offsetForArguments = +1;
+					advance.offsetForArguments += 1;
 					i++;
 					break;
 				case 0x44:
@@ -302,9 +305,9 @@ export default function createBuilder() {
 				throw new TypeError('Must at least specify call Oid or/and return Oid');
 			}
 			const callOidInts = callOids
-				.map((s) => (Number.parseInt(s, 10) & 0xff)).filter(Number.isFinite); // runtime protection for non ts coders
+				.map((s) => Number.parseInt(s, 10)).filter(Number.isFinite); // runtime protection for non ts coders
 			const rcOidInts = returnOids
-				.map((s) => (Number.parseInt(s, 10) & 0xff)).filter(Number.isFinite); // runtime protection for non ts coders
+				.map((s) => Number.parseInt(s, 10)).filter(Number.isFinite); // runtime protection for non ts coders
 			const errMsg = '":fn Oid" has invalid sequence must be in range [0,255]'
 			if (callOidInts.length !== callOids.length) {
 				throw new TypeError(

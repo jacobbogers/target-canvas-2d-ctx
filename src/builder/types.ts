@@ -99,6 +99,7 @@ export interface Builder {
 	foot(): number;
 	comp(buffer: Uint8Array, offset?: number, advance?: Advance): number;
 	clear(): Builder;
-	oid: (...d: UpToThreeDigitNumberString[]) => Builder;
-	oidE: () => Builder;
+	oid: (...callOids: UpToThreeDigitNumberString[]) => (...returnOids: UpToThreeDigitNumberString[]) => (fn?: (builder: Builder) => void) => Builder;
 }
+
+
