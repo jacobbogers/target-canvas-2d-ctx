@@ -14,6 +14,7 @@ import type {
 	UpToThreeDigitNumberString,
 } from './types';
 import { intFootprint, setFloat32, setFloat64, setInt } from './helpers';
+import { nullTypVal, oidTypeVal, sequenceTypeVal, boolTypeVal, stringTypeVal, ubyteTypeVal } from '../constants';
 
 export default function createBuilder() {
 	const instructions: InputArguments[] = [];
@@ -47,7 +48,8 @@ export default function createBuilder() {
 
 	function storeBool(b: boolean) {
 		instructions.push({
-			valueType: b ? 0x30 : 0x31,
+			valueType: 0x30,
+			value: b,
 		});
 		return rc;
 	}
@@ -146,9 +148,9 @@ export default function createBuilder() {
 		for (i = 0; i < commands.length;) {
 			const command: InputArguments = commands[i];
 			switch (command.valueType) {
-				case 0x00:
-				case 0x80:
-				case 0x88:
+				case oidTypeVal:
+				case sequenceTypeVal:
+				case nullTypVal:
 					{
 						const fp = footPrint(commands.slice(i + 1, i + command.value));
 						const fpInt = intFootprint(fp);
@@ -157,8 +159,8 @@ export default function createBuilder() {
 					}
 					break;
 				// string or ubyte
-				case 0x10:
-				case 0x60:
+				case stringTypeVal:
+				case ubyteTypeVal:
 					{
 						const fp = command.value.byteLength;
 						const fpInt = intFootprint(fp);
@@ -168,7 +170,6 @@ export default function createBuilder() {
 					break;
 				// boolean
 				case 0x30:
-				case 0x31:
 					byteCount += 1;
 					i++;
 					break;
@@ -218,9 +219,9 @@ export default function createBuilder() {
 			const command = commands[i];
 			buffer[csr] = command.valueType;
 			switch (command.valueType) {
-				case 0x88:
-				case 0x80:
-				case 0x00:
+				case oidTypeVal:
+				case sequenceTypeVal:
+				case nullTypVal:
 					{
 						const fragment = commands.slice(i + 1, i + command.value)
 						const fp = footPrint(fragment);
@@ -232,9 +233,11 @@ export default function createBuilder() {
 						i += 1 + command.value;
 					}
 					break;
-				case 0x31:
-				case 0x30:
+				case boolTypeVal:
 					buffer[csr] = command.valueType;
+					if (command.value) {
+						buffer[csr] = (command.valueType | 1);
+					}
 					csr++;
 					advance.offsetForArguments += 1;
 					byteCount++;
@@ -267,13 +270,13 @@ export default function createBuilder() {
 					i++;
 					break;
 				case 0x44:
-					csr += setFloat32(command.value, buffer, csr, advance);
-					i++;
-					break;
 				case 0x48:
-					csr += setFloat64(command.value, buffer, csr, advance);
-					i++;
-					break;
+					{
+						const callSpec = command.valueType === 0x44 ? setFloat32 : setFloat64;
+						csr += callSpec(command.value, buffer, csr, advance);
+						i++;
+						break;
+					}
 				default:
 					throw new TypeError(`undefined type: ${JSON.stringify(command)}`);
 			}

@@ -63,8 +63,8 @@ describe('Builder', () => {
 		const target = new Uint8Array(length);
 		expect(builder.comp(target)).toBe(length);
 		expect(target).toEqual(new Uint8Array([
-			0x30,
 			0x31,
+			0x30
 		]))
 	});
 	it('string', () => {

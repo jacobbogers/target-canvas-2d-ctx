@@ -1,22 +1,3 @@
-import type {
-	NonRedactedTypes,
-} from '../types';
-
-export type StringRedactedType = 0x10;
-export type IntRedactedType = 0x20;
-export type BoolRedactedType = 0x30;
-export type FloatRedactedType = 0x40;
-export type UbyteRedactedType = 0x60;
-
-export type RedactedTypes =
-	| StringRedactedType
-	| IntRedactedType
-	| BoolRedactedType
-	| FloatRedactedType
-	| UbyteRedactedType;
-
-export type AllBinTypes = NonRedactedTypes | RedactedTypes;
-
 export type ASTWalkerOptions = {
 	retainParents: boolean;
 	showLocations: boolean;
@@ -57,7 +38,7 @@ type Range = {
 }
 
 export type AstSkip = AstTerminal<'skip'>;
-export type AstOptional<T extends TerminalTypeName> = AstTerminal<T> | AstSkip;
+export type AstOptionalUnion<T extends TerminalTypeName> = AstTerminal<T> | AstSkip;
 
 export type AstNested = AstStructure | AstTerminal<TerminalTypeName>;
 
@@ -69,28 +50,25 @@ export type AstStructure = {
 }
 
 export type AstOid = {
-	type: 'oid'
+	type: 'oid';
 	range?: Range;
-	value: [AstOptional<'ubyte'>, AstOptional<'ubyte'>];
+	value: [AstOptionalUnion<'ubyte'>, AstOptionalUnion<'ubyte'>];
 	children?: AstNested[];
 }
 
 export type AstNull = {
-	type: 'null'
+	type: 'null';
 	range?: Range;
 	children?: AstNested[];
 }
 
-export interface WalkerPrototype {
-	next(): void;
-	stop(): void;
-	setCtxProp(propName: string, value: unknown): void;
-	getCtxProp(propName: string): unknown;
-	getCtx(): Record<string, unknown>;
+export interface StructuredWalkerPrototype {
+	skip(): void;
 	getCurrentBytePosition(): number;
 }
 export interface Walker {
-	enterStructure?(this: WalkerPrototype, struct: AstStructure, parent: AstStructure | AstOid | AstNull, nesting: number): void;
+	enterOid?(this: StructuredWalkerPrototype, struct: AstOid): void;
+	enterStructure?(this: StructuredWalkerPrototype, struct: AstStructure, parent: AstStructure | AstOid | AstNull, nesting: number): void;
 	leaveStructure?(this: WalkerPrototype, struct: AstStructure, parent: AstStructure | AstOid | AstNull, nesting: number): void;
 	enterNull?(this: WalkerPrototype, value: AstNull): void;
 	leaveNull?(this: WalkerPrototype, value: AstNull): void;

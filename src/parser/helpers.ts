@@ -1,15 +1,6 @@
-import type { AllBinTypes, NonRedactedTypes } from '../types';
+import type { AllBinTypes } from '../types';
 import type { RedactedTypes } from './types';
 
-import {
-	oidTypeVal,
-	nullSansPayloadTypVal,
-	nullWithPayloadStartTypVal,
-	nullWithPayloadEndTypVal,
-	optionalTypeVal,
-	sequenceStartTypeVal,
-	sequenceEndTypeVal,
-} from '../constants';
 
 import {
 	stringRedactedTypeVal,
