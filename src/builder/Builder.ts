@@ -14,7 +14,7 @@ import type {
 	UpToThreeDigitNumberString,
 } from './types';
 import { intFootprint, setFloat32, setFloat64, setInt } from './helpers';
-import { nullTypVal, oidTypeVal, sequenceTypeVal, boolTypeVal, stringTypeVal, ubyteTypeVal } from '../constants';
+import { nullTypVal, oidTypeVal, objectTypeVal, boolTypeVal, stringTypeVal, ubyteTypeVal } from '../constants';
 
 export default function createBuilder() {
 	const instructions: InputArguments[] = [];
@@ -149,7 +149,7 @@ export default function createBuilder() {
 			const command: InputArguments = commands[i];
 			switch (command.valueType) {
 				case oidTypeVal:
-				case sequenceTypeVal:
+				case objectTypeVal:
 				case nullTypVal:
 					{
 						const fp = footPrint(commands.slice(i + 1, i + command.value));
@@ -220,7 +220,7 @@ export default function createBuilder() {
 			buffer[csr] = command.valueType;
 			switch (command.valueType) {
 				case oidTypeVal:
-				case sequenceTypeVal:
+				case objectTypeVal:
 				case nullTypVal:
 					{
 						const fragment = commands.slice(i + 1, i + command.value)

@@ -1,72 +1,62 @@
-import type { AllBinTypes } from '../types';
-import { getType } from './helpers';
-import type { Parser } from './types';
-import {
-    oidTypeVal,
-    nullSansPayloadTypVal,
-    nullWithPayloadStartTypVal,
-    nullWithPayloadEndTypVal,
-    optionalTypeVal,
-    sequenceStartTypeVal,
-    sequenceEndTypeVal,
-} from '../constants';
+import { oidTypeVal, optionalTypeVal, redactedMask, ubyteTypeVal } from '../constants';
+import { createAdvance } from '../helpers';
+import type { Advance, AllBinTypes, ASTOid, ASTParent, ASTRoot, Parser } from '../types';
+import { readOIDFragment } from './helpers';
 
-import {
-    stringRedactedTypeVal,
-    intRedactedTypeVal,
-    boolRedactedTypeVal,
-    flatRedactedTypeVal,
-    ubyteRedactedTypeVal,
-} from './constants';
+
 
 export default function createParser(): Parser {
 
-    function parseStart(
-        data: Uint8Array, offset = 0, length = data.byteLength
-    ): Parser {
-        let csr = offset;
-        while (csr < length) {
-            const rawType = data[csr];
-            const binType = getType(rawType as AllBinTypes);
-            // check first for non redacted types
-            // after we check redacted types,
-            //      redacted types only check the high nibble bytes of a type (0xf0 mask)
-            //  this checking  order avoids future type ambiguity processing
-            switch (binType) {
-                case oidTypeVal:
-                    break;
-                case nullSansPayloadTypVal:
-                    break;
-                case nullWithPayloadStartTypVal:
-                    break;
-                case nullWithPayloadEndTypVal:
-                    break;
-                case optionalTypeVal:
-                    break;
-                case sequenceStartTypeVal:
-                    break;
-                case sequenceEndTypeVal:
-                    break;
-                // now check for redacted types
-                case stringRedactedTypeVal:
-                    break;
-                case intRedactedTypeVal:
-                    break;
-                case boolRedactedTypeVal:
-                    break;
-                case flatRedactedTypeVal:
-                    break;
-                case ubyteRedactedTypeVal:
-                    break;
-            }
+    const root: ASTRoot = {
+        type: 'root',
+        range: {
+            start: 0,
+            end: 0,
+        },
+        children: [],
+    };
+
+    function parse(data: Uint8Array, limit: number, parent: ASTParent, advance: Advance): void {
+        if (advance.offsetForReturnArguments >= limit) {
+            return;
         }
-        return rc;
+        const valType = data[advance.offsetForReturnArguments] & redactedMask as AllBinTypes;
+        switch (valType) {
+            case oidTypeVal:
+                {
+                    const ast = readOIDFragment(data, advance);
+                    // get the last oid
+                    const payLoadOffset = ast.value[1].range.end;
+                    ast.parent = parent;
+                    parent.children.push(ast);
+                    // yield oid enter
+                    if (payLoadOffset !== ast.range.end) {
+                        const advanceForChild = structuredClone(advance);
+                        advanceForChild.offsetForReturnArguments = payLoadOffset;
+                        parse(data, ast.range.end, ast as ASTParent, advanceForChild);
+                        // yield oid leave
+                    }
+                    break;
+                }
+        }
+    }
+
+
+    function parseStart(data: Uint8Array, offset?: number, limit?: number): ASTRoot {
+        const maxLen = limit ?? data.byteLength;
+        const csr = offset ?? 0;
+        root.range.start = 0;
+        root.range.end = -1;
+        root.children.splice(0);
+        const advance = createAdvance()
+        advance.offsetForReturnArguments = csr;
+        parse(data, maxLen, root as ASTParent, advance);
+        return root;
     }
 
     // instruction map for the js Proxy object
     const map = {
         parse: parseStart,
-        walk: undefined,
     };
 
     type KeyOfMap = keyof typeof map;

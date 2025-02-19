@@ -68,25 +68,3 @@ export function setInt(
 	return fp + 1;
 }
 
-export function getInt(
-	buffer: Uint8Array,
-	offset: number,
-	advance: Advance,
-): number {
-	const footPrint = buffer[offset] & 0x0f;
-	let answer = 0;
-	let power = 1;
-	for (let i = 0; i < footPrint; i++) {
-		answer += buffer[offset + i + 1] * power;
-		power *= 256;
-	}
-	const max2Compl = 2 ** (footPrint * 8 - 1) - 1;
-	// u = max2Compl - p
-	// p = max2Compl - u
-	advance.offsetForReturnArguments += 1 + footPrint;
-	return max2Compl > answer ? answer : max2Compl - answer;
-}
-
-export function createLedger(): Advance {
-	return { offsetForArguments: 0, offsetForReturnArguments: 0 };
-}

@@ -1,17 +1,6 @@
-import createBuilder from '../src/builder/Builder';
-import { createLedger } from '../src/builder/helpers';
-import type { Builder, UpToThreeDigitNumberString } from '../src/builder/types';
-import type { Advance } from '../src/types';
-import u8intFixture from './fixture/byte-buffer-fixtures';
-
-
-function printToBin(builder: Builder) {
-	const len = builder.foot();
-	const target = new Uint8Array(len);
-	const advance = createLedger();
-	const len2 = builder.comp(target, 0, advance);
-	return { len, len2, advance, target };
-}
+import { printToBin } from '../../helpers';
+import createBuilder from '../Builder';
+import type { Builder, BuilderCore, UpToThreeDigitNumberString } from '../types';
 
 describe('Builder', () => {
 	it('integers', () => {
@@ -159,17 +148,18 @@ describe('Builder', () => {
 		});
 		it('oid no call or return oid', () => {
 			const builder = createBuilder();
-			expect(() => builder.oid()()((build: Builder) => {
+			expect(() => builder.oid()()((build: BuilderCore) => {
 				build.debug();
 			})).toThrow('Must at least specify call Oid or/and return Oid')
 		});
 		it('only return oid defined, oid prohibits build commmands', () => {
 			const target = new Uint8Array(0)
 			const builder = createBuilder();
-			expect(() => builder.oid()('1', '2', '0')((build: Builder) => {
+			expect(() => builder.oid()('1', '2', '0')((build: BuilderCore) => {
 				build.skip();
 				// il
-				build.foot();
+				// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+				(build as any).foot();
 			})).toThrow('build.foot is not a function');
 
 			// builder is unsusable here, because error happened
@@ -186,7 +176,7 @@ describe('Builder', () => {
 		});
 		it('only call oid defined, oid prohibits build commmands', () => {
 			const builder = createBuilder();
-			builder.oid('1', '2', '0')()((build: Builder) => {
+			builder.oid('1', '2', '0')()((build: BuilderCore) => {
 				build.skip();
 			});
 			const { len, len2, target, advance } = printToBin(builder);
@@ -204,13 +194,13 @@ describe('Builder', () => {
 		});
 		it('call oids will resolve to NaN', () => {
 			const builder = createBuilder();
-			expect(() => builder.oid('Poi' as UpToThreeDigitNumberString, '2', '0')()((build: Builder) => {
+			expect(() => builder.oid('Poi' as UpToThreeDigitNumberString, '2', '0')()((build: BuilderCore) => {
 				build.skip();
 			})).toThrow('"call Oid" has invalid sequence must be in range [0,255]')
 		});
 		it('return oids will resolve to NaN', () => {
 			const builder = createBuilder();
-			expect(() => builder.oid()('Poi' as UpToThreeDigitNumberString, '2', '0')((build: Builder) => {
+			expect(() => builder.oid()('Poi' as UpToThreeDigitNumberString, '2', '0')((build: BuilderCore) => {
 				build.skip();
 			})).toThrow('"return Oid" has invalid sequence must be in range [0,255]')
 		});
@@ -251,10 +241,12 @@ describe('Builder', () => {
 					expect(build1).toBe(build2);
 					expect(build1).toBe(builder);
 					//
-					expect(build2.comp).toBeUndefined();
-					expect(build2.foot).toBeUndefined();
+					// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+					const build = build2 as any;
+					expect(build.comp).toBeUndefined();
+					expect(build.foot).toBeUndefined();
 					expect(build2.debug).toBeDefined();
-					expect(build2.clear).toBeUndefined();
+					expect(build.clear).toBeUndefined();
 				})
 			})
 			const { len, len2, target, advance } = printToBin(builder);
