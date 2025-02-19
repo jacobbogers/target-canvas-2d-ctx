@@ -65,6 +65,7 @@ export type ASTTerminal<T extends TerminalTypeName> = {
 	type: T;
 	range: Range;
 	value: JSType<T>;
+	parent?: ASTParent;
 };
 
 export type ASTSkip = ASTTerminal<'skip'>;

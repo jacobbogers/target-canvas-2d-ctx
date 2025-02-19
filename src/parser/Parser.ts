@@ -1,7 +1,7 @@
-import { oidTypeVal, optionalTypeVal, redactedMask, ubyteTypeVal } from '../constants';
+import { intTypeVal, oidTypeVal, optionalTypeVal, redactedMask, ubyteTypeVal } from '../constants';
 import { createAdvance } from '../helpers';
 import type { Advance, AllBinTypes, ASTOid, ASTParent, ASTRoot, Parser } from '../types';
-import { readOIDFragment } from './helpers';
+import { readIntFragment, readOIDFragment } from './helpers';
 
 
 
@@ -17,27 +17,42 @@ export default function createParser(): Parser {
     };
 
     function parse(data: Uint8Array, limit: number, parent: ASTParent, advance: Advance): void {
-        if (advance.offsetForReturnArguments >= limit) {
-            return;
-        }
-        const valType = data[advance.offsetForReturnArguments] & redactedMask as AllBinTypes;
-        switch (valType) {
-            case oidTypeVal:
-                {
-                    const ast = readOIDFragment(data, advance);
-                    // get the last oid
-                    const payLoadOffset = ast.value[1].range.end;
-                    ast.parent = parent;
-                    parent.children.push(ast);
-                    // yield oid enter
-                    if (payLoadOffset !== ast.range.end) {
-                        const advanceForChild = structuredClone(advance);
-                        advanceForChild.offsetForReturnArguments = payLoadOffset;
-                        parse(data, ast.range.end, ast as ASTParent, advanceForChild);
-                        // yield oid leave
+        for (; ;) {
+            if (advance.offsetForReturnArguments === limit) {
+                if (parent === root) {
+                    root.range.end = advance.offsetForReturnArguments;
+                }
+                return;
+            }
+            if (advance.offsetForReturnArguments > limit) {
+                throw new RangeError(`advanced beyond specified position limit: ${limit}`);
+            }
+            const valType = data[advance.offsetForReturnArguments] & redactedMask as AllBinTypes;
+            switch (valType) {
+                case oidTypeVal:
+                    {
+                        const ast = readOIDFragment(data, advance);
+                        // get the last oid
+                        const payLoadOffset = ast.value[1].range.end;
+                        // ast.parent = parent;
+                        parent.children.push(ast);
+                        // yield oid enter
+                        if (payLoadOffset !== ast.range.end) {
+                            const advanceForChild = structuredClone(advance);
+                            advanceForChild.offsetForReturnArguments = payLoadOffset;
+                            parse(data, ast.range.end, ast as ASTParent, advanceForChild);
+                            // yield oid leave
+                        }
                     }
                     break;
-                }
+                case intTypeVal:
+                    {
+                        const ast = readIntFragment(data, advance);
+                        // ast.parent = parent;
+                        parent.children.push(ast);
+                    }
+                    break;
+            }
         }
     }
 

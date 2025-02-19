@@ -1,7 +1,7 @@
-import { EMPTY_UBYTE, optionalTypeVal, redactedMask, ubyteTypeVal } from "../constants";
+import { EMPTY_UBYTE, redactedMask, ubyteTypeVal } from "../constants";
 import { advanceByAndReturn } from "../helpers";
 import ParseError from "../ParseError";
-import type { Advance, ASTOid, ASTOptionalTerminal, ASTTerminal } from "../types";
+import type { Advance, ASTOid, ASTTerminal } from "../types";
 
 
 export function getInt(
@@ -40,14 +40,27 @@ export function getUbyte(
     return b;
 }
 
+export function readIntFragment(data: Uint8Array, advance: Advance): ASTTerminal<'intN'> {
+    const start = advance.offsetForReturnArguments;
+    const value = getInt(data, advance);
+    return {
+        type: 'intN',
+        value,
+        range: {
+            start,
+            end: advance.offsetForReturnArguments
+        },
+    };
+}
+
 
 export function readOIDFragment(data: Uint8Array, advance: Advance): ASTOid {
     const rootStart = advance.offsetForReturnArguments;
     const aggregateSize = getInt(data, advance);
     const footPrintOidSize = advance.offsetForReturnArguments - rootStart;
     const callOidType = data[advance.offsetForReturnArguments] & redactedMask;
-    // either ubyte or skip
-    if (callOidType !== ubyteTypeVal && callOidType !== optionalTypeVal) {
+    // ubyte
+    if (callOidType !== ubyteTypeVal) {
         throw new ParseError(1024); // no valid type found
     }
     const wpCOS = advance.offsetForReturnArguments;
@@ -63,8 +76,8 @@ export function readOIDFragment(data: Uint8Array, advance: Advance): ASTOid {
     };
 
     const returnOidType = data[advance.offsetForReturnArguments] & redactedMask;
-    // either ubyte or skip
-    if (returnOidType !== ubyteTypeVal && returnOidType !== optionalTypeVal) {
+    // ubyte
+    if (returnOidType !== ubyteTypeVal) {
         throw new ParseError(1024); // no valid type found
     }
     const wpROS = advance.offsetForReturnArguments;
@@ -77,6 +90,7 @@ export function readOIDFragment(data: Uint8Array, advance: Advance): ASTOid {
         },
         value: returnOidSignature,
     };
+    advance.offsetForReturnArguments = rootStart + aggregateSize + footPrintOidSize;
     return {
         type: 'oid',
         value: [astCOS, astROS],
