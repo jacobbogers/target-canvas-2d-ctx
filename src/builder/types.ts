@@ -22,7 +22,6 @@ export type NullArgument = {
 	value: number; // length of the payload in binary
 };
 
-
 export type StringArgument = {
 	valueType: StringType;
 	value: Uint8Array;
@@ -106,7 +105,9 @@ export interface BuilderCore {
 }
 
 export interface Builder extends BuilderCore, BuilderCommands {
-	oid: (...callOids: UpToThreeDigitNumberString[]) => (...returnOids: UpToThreeDigitNumberString[]) => (fn?: (builder: BuilderCore) => void) => Builder;
+	oid: (
+		...callOids: UpToThreeDigitNumberString[]
+	) => (
+		...returnOids: UpToThreeDigitNumberString[]
+	) => (fn?: (builder: BuilderCore) => void) => Builder;
 }
-
-

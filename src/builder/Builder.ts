@@ -1,6 +1,4 @@
-import type {
-	Advance,
-} from '../types';
+import type { Advance } from '../types';
 import { encode } from '../helpers';
 import type {
 	Builder,
@@ -14,7 +12,14 @@ import type {
 	UpToThreeDigitNumberString,
 } from './types';
 import { intFootprint, setFloat32, setFloat64, setInt } from './helpers';
-import { nullTypVal, oidTypeVal, objectTypeVal, boolTypeVal, stringTypeVal, ubyteTypeVal } from '../constants';
+import {
+	nullTypVal,
+	oidTypeVal,
+	objectTypeVal,
+	boolTypeVal,
+	stringTypeVal,
+	ubyteTypeVal,
+} from '../constants';
 
 export default function createBuilder() {
 	const instructions: InputArguments[] = [];
@@ -36,8 +41,7 @@ export default function createBuilder() {
 
 	function storeInt(n: number) {
 		const fp = intFootprint(n);
-		const valueType: 0x44 | 0x20 =
-			fp > 6 ? 0x44 : 0x20;
+		const valueType: 0x44 | 0x20 = fp > 6 ? 0x44 : 0x20;
 		const instr: FloatArgument | IntArgument = {
 			value: n,
 			valueType,
@@ -64,7 +68,8 @@ export default function createBuilder() {
 		instructions.push(nullInstr);
 		const beforeLastEntry = instructions.length - 1;
 		inNullPayloadMode = true;
-		if (fn) { // no payload
+		if (fn) {
+			// no payload
 			fn(rc);
 		}
 		nullInstr.value = instructions.length - beforeLastEntry;
@@ -85,7 +90,7 @@ export default function createBuilder() {
 			fn(rc);
 		}
 		inObjectPayloadMode -= 1;
-		obj.value = instructions.length - beforeLastEntry
+		obj.value = instructions.length - beforeLastEntry;
 		return rc;
 	}
 	// store strings
@@ -144,8 +149,8 @@ export default function createBuilder() {
 
 	function footPrint(commands: InputArguments[]): number {
 		let byteCount = 0;
-		let i = 0
-		for (i = 0; i < commands.length;) {
+		let i = 0;
+		for (i = 0; i < commands.length; ) {
 			const command: InputArguments = commands[i];
 			switch (command.valueType) {
 				case oidTypeVal:
@@ -178,7 +183,7 @@ export default function createBuilder() {
 					byteCount += 1 + intFootprint(command.value);
 					i++;
 					break;
-				// skip	
+				// skip
 				case 0x50:
 					byteCount += 1;
 					i++;
@@ -213,9 +218,9 @@ export default function createBuilder() {
 		},
 	): number {
 		let csr = offset;
-		let byteCount = 0
+		let byteCount = 0;
 		let i = 0;
-		for (i = 0; i < commands.length;) {
+		for (i = 0; i < commands.length; ) {
 			const command = commands[i];
 			buffer[csr] = command.valueType;
 			switch (command.valueType) {
@@ -223,7 +228,7 @@ export default function createBuilder() {
 				case objectTypeVal:
 				case nullTypVal:
 					{
-						const fragment = commands.slice(i + 1, i + command.value)
+						const fragment = commands.slice(i + 1, i + command.value);
 						const fp = footPrint(fragment);
 						const fpInt = intFootprint(fp);
 						setInt(command.valueType, fp, buffer, csr, advance);
@@ -236,7 +241,7 @@ export default function createBuilder() {
 				case boolTypeVal:
 					buffer[csr] = command.valueType;
 					if (command.value) {
-						buffer[csr] = (command.valueType | 1);
+						buffer[csr] = command.valueType | 1;
 					}
 					csr++;
 					advance.offsetForArguments += 1;
@@ -248,7 +253,13 @@ export default function createBuilder() {
 				case 0x10:
 					{
 						// sum of type and length value
-						const intBytes = setInt(command.valueType, command.value.byteLength, buffer, csr, advance);
+						const intBytes = setInt(
+							command.valueType,
+							command.value.byteLength,
+							buffer,
+							csr,
+							advance,
+						);
 						if (intBytes > 1) {
 							buffer.set(command.value, csr + intBytes);
 							advance.offsetForArguments += command.value.byteLength;
@@ -270,13 +281,12 @@ export default function createBuilder() {
 					i++;
 					break;
 				case 0x44:
-				case 0x48:
-					{
-						const callSpec = command.valueType === 0x44 ? setFloat32 : setFloat64;
-						csr += callSpec(command.value, buffer, csr, advance);
-						i++;
-						break;
-					}
+				case 0x48: {
+					const callSpec = command.valueType === 0x44 ? setFloat32 : setFloat64;
+					csr += callSpec(command.value, buffer, csr, advance);
+					i++;
+					break;
+				}
 				default:
 					throw new TypeError(`undefined type: ${JSON.stringify(command)}`);
 			}
@@ -308,25 +318,29 @@ export default function createBuilder() {
 				throw new TypeError('Must at least specify call Oid or/and return Oid');
 			}
 			const callOidInts = callOids
-				.map((s) => Number.parseInt(s, 10)).filter(Number.isFinite); // runtime protection for non ts coders
+				.map((s) => Number.parseInt(s, 10))
+				.filter(Number.isFinite); // runtime protection for non ts coders
 			const rcOidInts = returnOids
-				.map((s) => Number.parseInt(s, 10)).filter(Number.isFinite); // runtime protection for non ts coders
-			const errMsg = '":fn Oid" has invalid sequence must be in range [0,255]'
+				.map((s) => Number.parseInt(s, 10))
+				.filter(Number.isFinite); // runtime protection for non ts coders
+			const errMsg = '":fn Oid" has invalid sequence must be in range [0,255]';
 			if (callOidInts.length !== callOids.length) {
-				throw new TypeError(
-					errMsg.replace(':fn', 'call')
-				);
+				throw new TypeError(errMsg.replace(':fn', 'call'));
 			}
 			if (rcOidInts.length !== returnOids.length) {
-				throw new TypeError(
-					errMsg.replace(':fn', 'return')
-				);
+				throw new TypeError(errMsg.replace(':fn', 'return'));
 			}
 			const oidEntry: OIDArgument = { valueType: 0x88, value: 0 };
 			instructions.push(oidEntry);
 			const beforeLastEntry = instructions.length - 1;
-			instructions.push({ valueType: 0x60, value: Uint8Array.from(callOidInts) });
-			instructions.push({ valueType: 0x60, value: Uint8Array.from(returnOids) });
+			instructions.push({
+				valueType: 0x60,
+				value: Uint8Array.from(callOidInts),
+			});
+			instructions.push({
+				valueType: 0x60,
+				value: Uint8Array.from(returnOids),
+			});
 			iodMarked = true;
 			// we are in the clear
 			return function useBuilder(fn?: (buid: Builder) => void) {
@@ -334,12 +348,11 @@ export default function createBuilder() {
 					fn(rc);
 				}
 				iodMarked = false;
-				oidEntry.value += instructions.length - beforeLastEntry
+				oidEntry.value += instructions.length - beforeLastEntry;
 				return rc;
 			};
 		};
 	}
-
 
 	const map = {
 		n: storeNull,
@@ -378,8 +391,6 @@ export default function createBuilder() {
 		}
 		return false;
 	}
-
-
 
 	// function names
 	const handler: ProxyHandler<Record<never, never>> = {

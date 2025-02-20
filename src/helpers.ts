@@ -1,5 +1,5 @@
-import type { Builder } from "./builder/types";
-import type { Advance } from "./types";
+import type { Builder } from './builder/types';
+import type { Advance } from './types';
 
 export const decode = (() => {
 	const td = new TextDecoder();

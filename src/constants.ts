@@ -1,4 +1,15 @@
-import type { OIDType, NullType, OptionalType, StringType, IntType, BoolType, Float32Type, Float64Type, UbyteType, ObjectType } from "./types";
+import type {
+	OIDType,
+	NullType,
+	OptionalType,
+	StringType,
+	IntType,
+	BoolType,
+	Float32Type,
+	Float64Type,
+	UbyteType,
+	ObjectType,
+} from './types';
 
 export const baseUrlMatcher =
 	/^data\:image\/(?<type>[A-Za-z]+)[,;]+base64,(?<imgData>.*)$/;
