@@ -3,7 +3,7 @@ import { createAdvance, printToBin } from '../../helpers';
 import { getInt, getUbyte, readOIDFragment } from '../helpers';
 import { EMPTY_UBYTE } from '../../constants';
 
-describe('parser/helper', () => {
+describe.concurrent('parser/helper', () => {
 	describe('oid', () => {
 		it('fragment', () => {
 			const builder = createBuilder();
@@ -57,15 +57,15 @@ describe('parser/helper', () => {
 				offsetForReturnArguments: 0,
 			});
 			/*  console.log(data);
-             [
-             0x00   137,  10, // oid type marker and 10 bytes in length for the body
-             0x02   97,  3,   0, 1,   4, // call Oid as a Ubyte
-                
-             0x07   96, // return Oid (empty)
-             0x08   33, 127, // 127 int
-             0x0a   33, 255  // -1 integer
-             ]
-            */
+			 [
+			 0x00   137,  10, // oid type marker and 10 bytes in length for the body
+			 0x02   97,  3,   0, 1,   4, // call Oid as a Ubyte
+			    
+			 0x07   96, // return Oid (empty)
+			 0x08   33, 127, // 127 int
+			 0x0a   33, 255  // -1 integer
+			 ]
+			*/
 			const adv2 = createAdvance();
 			adv2.offsetForReturnArguments = 2;
 			const callUbytes = getUbyte(data, adv2);
@@ -112,15 +112,15 @@ describe('parser/helper', () => {
 				offsetForReturnArguments: 0,
 			});
 			/*  console.log(data);
-             [
-             0x00   137,  10, // oid type marker and 10 bytes in length for the body
-             0x02   97,  3,   0, 1,   4, // call Oid as a Ubyte
-                
-             0x07   96, // return Oid (empty)
-             0x08   33, 127, // 127 int
-             0x0a   33, 255  // -1 integer
-             ]
-            */
+			 [
+			 0x00   137,  10, // oid type marker and 10 bytes in length for the body
+			 0x02   97,  3,   0, 1,   4, // call Oid as a Ubyte
+			    
+			 0x07   96, // return Oid (empty)
+			 0x08   33, 127, // 127 int
+			 0x0a   33, 255  // -1 integer
+			 ]
+			*/
 			const adv2 = createAdvance();
 			adv2.offsetForReturnArguments = 2;
 			const callUbytes = getUbyte(data, adv2);

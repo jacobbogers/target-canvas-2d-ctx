@@ -5,9 +5,6 @@ export function intFootprint(u: number): number {
 	if (u === 0) {
 		return 0;
 	}
-	if (Math.trunc(u) === 0) {
-		return 1;
-	}
 	const adj = u > 0 ? u + 1 : u;
 	return Math.ceil((1 + Math.log2(Math.abs(adj))) / 8);
 }
