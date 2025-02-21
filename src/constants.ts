@@ -18,7 +18,7 @@ export const EMPTY_UBYTE = new Uint8Array();
 
 // composites
 export const oidTypeVal: OIDType = 136;
-export const nullTypVal: NullType = 0x00 as const;
+export const nullTypeVal: NullType = 0x00;
 export const objectTypeVal: ObjectType = 0x80;
 
 export const optionalTypeVal: OptionalType = 0x50;

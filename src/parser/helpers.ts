@@ -1,7 +1,34 @@
 import { EMPTY_UBYTE, redactedMask, ubyteTypeVal } from '../constants';
-import { advanceByAndReturn } from '../helpers';
+import { decode } from '../helpers';
 import ParseError from '../ParseError';
-import type { Advance, ASTOid, ASTTerminal } from '../types';
+import type {
+	Advance,
+	ASTNull,
+	ASTObject,
+	ASTOid,
+	ASTTerminal,
+} from '../types';
+
+export function getFloat32Or64(buffer: Uint8Array, advance: Advance): number {
+	const type = buffer[advance.offsetForReturnArguments];
+	const dv = new DataView(buffer.buffer, advance.offsetForReturnArguments + 1);
+	if (type === 0x44 || type === 0x48) {
+		advance.offsetForReturnArguments += type === 0x44 ? 5 : 9;
+		return type === 0x44 ? dv.getFloat32(0, true) : dv.getFloat64(0, true);
+	}
+	throw new SyntaxError(`float is not correct type: 0x${type.toString(16)}`);
+}
+
+export function getString(buffer: Uint8Array, advance: Advance): string {
+	const asBin = getUbyte(buffer, advance);
+	return decode(asBin);
+}
+
+function getBoolean(buffer: Uint8Array, advance: Advance): boolean {
+	const value = (buffer[advance.offsetForReturnArguments] & 0x01) === 1;
+	advance.offsetForReturnArguments++;
+	return value;
+}
 
 export function getInt(buffer: Uint8Array, advance: Advance): number {
 	const footPrint = buffer[advance.offsetForReturnArguments] & 0x07;
@@ -27,12 +54,78 @@ export function getUbyte(buffer: Uint8Array, advance: Advance): Uint8Array {
 		// signal a specific Error for Ubyte, maybe transfer meta info to "Advance"
 		throw new RangeError('Size of Ubyte type exceeds un parsed memory');
 	}
-	const b = buffer.slice(
-		advance.offsetForReturnArguments,
-		advance.offsetForReturnArguments + byteLength,
-	);
+	const b =
+		byteLength === 0
+			? EMPTY_UBYTE
+			: buffer.slice(
+					advance.offsetForReturnArguments,
+					advance.offsetForReturnArguments + byteLength,
+				);
 	advance.offsetForReturnArguments += byteLength;
 	return b;
+}
+
+export function readOptionalFragment(
+	data: Uint8Array,
+	advance: Advance,
+): ASTTerminal<'skip'> {
+	advance.offsetForReturnArguments++;
+	return {
+		type: 'skip',
+		range: {
+			start: advance.offsetForReturnArguments - 1,
+			end: advance.offsetForReturnArguments,
+		},
+	};
+}
+
+export function readFloat32Or64Fragment(
+	data: Uint8Array,
+	advance: Advance,
+): ASTTerminal<'float32' | 'float64'> {
+	const start = advance.offsetForReturnArguments;
+	const value = getFloat32Or64(data, advance);
+	const type = data[start] === 0x44 ? 'float32' : 'float64';
+	return {
+		type,
+		range: {
+			start,
+			end: advance.offsetForReturnArguments,
+		},
+		value,
+	};
+}
+
+export function readStringFragment(
+	data: Uint8Array,
+	advance: Advance,
+): ASTTerminal<'string'> {
+	const start = advance.offsetForReturnArguments;
+	const value = getString(data, advance);
+	return {
+		type: 'string',
+		value,
+		range: {
+			start,
+			end: advance.offsetForReturnArguments,
+		},
+	};
+}
+
+export function readBooleanFragment(
+	data: Uint8Array,
+	advance: Advance,
+): ASTTerminal<'boolean'> {
+	const start = advance.offsetForReturnArguments;
+	const value = getBoolean(data, advance);
+	return {
+		type: 'boolean',
+		value,
+		range: {
+			start,
+			end: advance.offsetForReturnArguments,
+		},
+	};
 }
 
 export function readIntFragment(
@@ -51,6 +144,39 @@ export function readIntFragment(
 	};
 }
 
+export function readUbyteFragment(
+	data: Uint8Array,
+	advance: Advance,
+): ASTTerminal<'ubyte'> {
+	const rootStart = advance.offsetForReturnArguments;
+	const value = getUbyte(data, advance);
+	return {
+		type: 'ubyte',
+		range: {
+			start: rootStart,
+			end: advance.offsetForReturnArguments,
+		},
+		value,
+	};
+}
+
+export function readNullOrObjectFragment(
+	type: 'null' | 'object',
+	data: Uint8Array,
+	advance: Advance,
+): ASTNull | ASTObject {
+	const rootStart = advance.offsetForReturnArguments;
+	const aggregateSize = getInt(data, advance);
+	return {
+		type,
+		range: {
+			start: rootStart,
+			end: advance.offsetForReturnArguments + aggregateSize,
+		},
+		...(aggregateSize > 0 && { children: [] }),
+	};
+}
+
 export function readOIDFragment(data: Uint8Array, advance: Advance): ASTOid {
 	const rootStart = advance.offsetForReturnArguments;
 	const aggregateSize = getInt(data, advance);
@@ -61,38 +187,14 @@ export function readOIDFragment(data: Uint8Array, advance: Advance): ASTOid {
 		throw new ParseError(1024); // no valid type found
 	}
 	const wpCOS = advance.offsetForReturnArguments;
-	const callOidSignature =
-		callOidType === ubyteTypeVal
-			? getUbyte(data, advance)
-			: advanceByAndReturn(advance, EMPTY_UBYTE);
-
-	const astCOS: ASTTerminal<'ubyte'> = {
-		type: 'ubyte',
-		range: {
-			start: wpCOS,
-			end: advance.offsetForReturnArguments,
-		},
-		value: callOidSignature,
-	};
+	const astCOS: ASTTerminal<'ubyte'> = readUbyteFragment(data, advance);
 
 	const returnOidType = data[advance.offsetForReturnArguments] & redactedMask;
 	// ubyte
 	if (returnOidType !== ubyteTypeVal) {
-		throw new ParseError(1024); // no valid type found
+		throw new ParseError(1024); // 'Oid Error, no Oid or Optional placeholder found',
 	}
-	const wpROS = advance.offsetForReturnArguments;
-	const returnOidSignature =
-		returnOidType === ubyteTypeVal
-			? getUbyte(data, advance)
-			: advanceByAndReturn(advance, EMPTY_UBYTE);
-	const astROS: ASTTerminal<'ubyte'> = {
-		type: 'ubyte',
-		range: {
-			start: wpROS,
-			end: advance.offsetForReturnArguments,
-		},
-		value: returnOidSignature,
-	};
+	const astROS: ASTTerminal<'ubyte'> = readUbyteFragment(data, advance);
 	advance.offsetForReturnArguments =
 		rootStart + aggregateSize + footPrintOidSize;
 	return {

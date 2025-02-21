@@ -1,20 +1,32 @@
 import {
+	boolTypeVal,
 	intTypeVal,
+	nullTypeVal,
+	objectTypeVal,
 	oidTypeVal,
 	optionalTypeVal,
 	redactedMask,
+	stringTypeVal,
 	ubyteTypeVal,
 } from '../constants';
 import { createAdvance } from '../helpers';
 import type {
 	Advance,
 	AllBinTypes,
-	ASTOid,
 	ASTParent,
 	ASTRoot,
 	Parser,
 } from '../types';
-import { readIntFragment, readOIDFragment } from './helpers';
+import {
+	readBooleanFragment,
+	readFloat32Or64Fragment,
+	readIntFragment,
+	readNullOrObjectFragment,
+	readOIDFragment,
+	readOptionalFragment,
+	readStringFragment,
+	readUbyteFragment,
+} from './helpers';
 
 export default function createParser(): Parser {
 	const root: ASTRoot = {
@@ -47,6 +59,38 @@ export default function createParser(): Parser {
 			const valType =
 				data[advance.offsetForReturnArguments] & (redactedMask as AllBinTypes);
 			switch (valType) {
+				case objectTypeVal:
+					{
+						const start = advance.offsetForReturnArguments;
+						const ast = readNullOrObjectFragment('object', data, advance);
+						// advance is NOT moved to the end of the null structure
+						const startPayload = advance.offsetForReturnArguments;
+						const endPayload = ast.range.end;
+						parent.children.push(ast);
+						// yield null enter
+						// do we have a payload?
+						if (endPayload > startPayload) {
+							parse(data, ast.range.end, ast as ASTParent, advance);
+							// yield null leave
+						}
+					}
+					break;
+				case nullTypeVal:
+					{
+						const start = advance.offsetForReturnArguments;
+						const ast = readNullOrObjectFragment('null', data, advance);
+						// advance is NOT moved to the end of the null structure
+						const startPayload = advance.offsetForReturnArguments;
+						const endPayload = ast.range.end;
+						parent.children.push(ast);
+						// yield null enter
+						// do we have a payload?
+						if (endPayload > startPayload) {
+							parse(data, ast.range.end, ast as ASTParent, advance);
+							// yield null leave
+						}
+					}
+					break;
 				case oidTypeVal:
 					{
 						const ast = readOIDFragment(data, advance);
@@ -63,13 +107,45 @@ export default function createParser(): Parser {
 						}
 					}
 					break;
-				case intTypeVal:
+				case optionalTypeVal:
 					{
-						const ast = readIntFragment(data, advance);
-						// ast.parent = parent;
+						const ast = readOptionalFragment(data, advance);
 						parent.children.push(ast);
 					}
 					break;
+				case stringTypeVal:
+					{
+						const ast = readStringFragment(data, advance);
+						parent.children.push(ast);
+					}
+					break;
+				case intTypeVal:
+					{
+						const ast = readIntFragment(data, advance);
+						parent.children.push(ast);
+					}
+					break;
+				case boolTypeVal:
+					{
+						const ast = readBooleanFragment(data, advance);
+						parent.children.push(ast);
+					}
+					break;
+				case 0x40:
+				case 0x48:
+					{
+						const ast = readFloat32Or64Fragment(data, advance);
+						parent.children.push(ast);
+					}
+					break;
+				case ubyteTypeVal:
+					{
+						const ast = readUbyteFragment(data, advance);
+						parent.children.push(ast);
+					}
+					break;
+				default:
+					throw new SyntaxError(`unknown type: 0x${valType.toString(16)}`);
 			}
 		}
 	}

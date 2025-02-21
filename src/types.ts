@@ -42,7 +42,7 @@ export interface Parser {
 }
 
 export type TerminalTypeNameMapToJS = {
-	skip: undefined;
+	skip: never;
 	float32: number;
 	float64: number;
 	intN: number;
@@ -63,14 +63,12 @@ export type JSType<Key extends TerminalTypeName> = TerminalTypeNameMapToJS[Key];
 export type ASTTerminal<T extends TerminalTypeName> = {
 	type: T;
 	range: Range;
-	value: JSType<T>;
-	parent?: ASTParent;
+	value?: T extends 'skip' ? never : JSType<T>;
 };
 
-export type ASTSkip = ASTTerminal<'skip'>;
 export type ASTOptionalTerminal<T extends TerminalTypeName> =
 	| ASTTerminal<T>
-	| ASTSkip;
+	| ASTTerminal<'skip'>;
 export type ASTStructured = ASTNull | ASTOid | ASTObject;
 export type ASTNested = ASTStructured | ASTOptionalTerminal<TerminalTypeName>;
 export type ASTParent = Required<ASTRoot | ASTStructured>;
@@ -78,12 +76,10 @@ export type ASTParent = Required<ASTRoot | ASTStructured>;
 export interface ASTCore {
 	range: Range;
 	children?: ASTNested[]; // omitted if it is an empty object/structure
-	parent?: ASTParent; // omitted if it is has no parent object
 }
 
 export interface ASTObject extends ASTCore {
 	type: 'object';
-	parent?: ASTParent;
 }
 
 export interface ASTOid extends ASTCore {

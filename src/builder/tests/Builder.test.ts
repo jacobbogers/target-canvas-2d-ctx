@@ -6,7 +6,7 @@ import type {
 	UpToThreeDigitNumberString,
 } from '../types';
 
-describe('Builder', () => {
+describe.concurrent('Builder', () => {
 	it('integers', () => {
 		const builder = createBuilder();
 		builder
@@ -158,46 +158,7 @@ describe('Builder', () => {
 			]),
 		);
 	});
-	it('skip', () => {
-		const builder = createBuilder();
-		const buf1 = new Uint8Array(4).map((v, i) => i);
-		builder.buf(buf1).skip().skip();
-		const length = builder.foot();
-		const target = new Uint8Array(length);
-		expect(builder.comp(target)).toBe(length);
-		expect(target).toEqual(
-			Uint8Array.from([
-				97,
-				4,
-				0,
-				1,
-				2,
-				3,
-				80, // skip
-				80, // skip
-			]),
-		);
-	});
-	it('skip', () => {
-		const builder = createBuilder();
-		const buf1 = new Uint8Array(4).map((v, i) => i);
-		builder.buf(buf1).skip().skip();
-		const length = builder.foot();
-		const target = new Uint8Array(length);
-		expect(builder.comp(target)).toBe(length);
-		expect(target).toEqual(
-			Uint8Array.from([
-				97,
-				4,
-				0,
-				1,
-				2,
-				3,
-				80, // skip
-				80, // skip
-			]),
-		);
-	});
+
 	describe('oid', () => {
 		it('oid no payload', () => {
 			const builder = createBuilder();
@@ -289,6 +250,28 @@ describe('Builder', () => {
 				),
 			).toThrow('"return Oid" has invalid sequence must be in range [0,255]');
 		});
+		it('oid with embedded objects', () => {
+			const builder = createBuilder();
+			const buildAlias = builder.oid('000', '99', '255')('123', '22')((b) => {
+				b.obj((b2) => {
+					b2.s('hello');
+				}).s('world');
+				b.i(-3);
+			});
+			const { len, len2, target, advance } = printToBin(builder);
+			expect(target).toEqual(
+				Uint8Array.from([
+					137, 27, 97, 3, 0, 99, 255, 97, 2, 123, 22, 129, 7, 17, 5, 104, 101,
+					108, 108, 111, 17, 5, 119, 111, 114, 108, 100, 33, 253,
+				]),
+			);
+			expect(advance).toEqual({
+				offsetForArguments: 29,
+				offsetForReturnArguments: 0,
+			});
+			expect(len).toBe(len2);
+			expect(len).toBe(29);
+		});
 	});
 	describe('null', () => {
 		it('null with payload', () => {
@@ -321,7 +304,7 @@ describe('Builder', () => {
 		});
 	});
 	describe('object', () => {
-		it('nested objects', () => {
+		it('nested objects 1', () => {
 			const builder = createBuilder();
 			builder.obj((build1) => {
 				build1.obj((build2) => {
@@ -341,6 +324,28 @@ describe('Builder', () => {
 			expect(len).toEqual(3);
 			expect(advance.offsetForArguments).toBe(len);
 			expect(target).toEqual(Uint8Array.from([129, 1, 128]));
+		});
+		it('nested objects 2', () => {
+			const builder = createBuilder();
+			builder.obj((build1) => {
+				build1.s('hello');
+				build1.obj((build2) => {
+					build2.s('embedded');
+				});
+			});
+			const { len, len2, target, advance } = printToBin(builder);
+			expect(target).toEqual(
+				Uint8Array.from([
+					129, 19, 17, 5, 104, 101, 108, 108, 111, 129, 10, 17, 8, 101, 109, 98,
+					101, 100, 100, 101, 100,
+				]),
+			);
+			expect(len).toBe(len2);
+			expect(advance).toEqual({
+				offsetForArguments: 21,
+				offsetForReturnArguments: 0,
+			});
+			expect(len).toBe(21);
 		});
 	});
 

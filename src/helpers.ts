@@ -15,11 +15,6 @@ export function createAdvance(): Advance {
 	return { offsetForArguments: 0, offsetForReturnArguments: 0 };
 }
 
-export function advanceByAndReturn<T>(advance: Advance, rc: T, by = 1): T {
-	advance.offsetForReturnArguments += by;
-	return rc;
-}
-
 export function printToBin(builder: Builder) {
 	const len = builder.foot();
 	const target = new Uint8Array(len);

@@ -13,7 +13,7 @@ import type {
 } from './types';
 import { intFootprint, setFloat32, setFloat64, setInt } from './helpers';
 import {
-	nullTypVal,
+	nullTypeVal,
 	oidTypeVal,
 	objectTypeVal,
 	boolTypeVal,
@@ -155,7 +155,7 @@ export default function createBuilder() {
 			switch (command.valueType) {
 				case oidTypeVal:
 				case objectTypeVal:
-				case nullTypVal:
+				case nullTypeVal:
 					{
 						const fp = footPrint(commands.slice(i + 1, i + command.value));
 						const fpInt = intFootprint(fp);
@@ -226,16 +226,15 @@ export default function createBuilder() {
 			switch (command.valueType) {
 				case oidTypeVal:
 				case objectTypeVal:
-				case nullTypVal:
+				case nullTypeVal:
 					{
 						const fragment = commands.slice(i + 1, i + command.value);
 						const fp = footPrint(fragment);
 						const fpInt = intFootprint(fp);
 						setInt(command.valueType, fp, buffer, csr, advance);
 						csr += fpInt + 1;
-						const newCursorPos = compile(fragment, buffer, csr, advance);
-						csr = newCursorPos;
-						i += 1 + command.value;
+						csr = compile(fragment, buffer, csr, advance);
+						i += command.value;
 					}
 					break;
 				case boolTypeVal:
