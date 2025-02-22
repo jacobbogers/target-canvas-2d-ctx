@@ -22,3 +22,13 @@ export function printToBin(builder: Builder) {
 	const len2 = builder.comp(target, 0, advance);
 	return { len, len2, advance, target };
 }
+
+const globalResolved = Promise.resolve();
+
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+function defer<T extends (...args: any[]) => any>(
+	fn: T,
+	fnargs: Parameters<T>,
+) {
+	globalResolved.then(() => fn(...fnargs));
+}
